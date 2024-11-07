@@ -1,0 +1,36 @@
+root = true
+
+[*]
+charset = utf-8
+indent_style = space
+indent_size = 2
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.md]
+indent_style = space
+indent_size = 4
+trim_trailing_whitespace = false
+insert_final_newline = false
+
+[{*.ts, *.js, *.mjs}]
+indent_size = 4
+
+[*.rs]
+indent_size = 4
+
+[*.py]
+indent_size = 4
+
+[{*.c, *.h, *.s, *.mk, Makefile, rules}]
+# C coding style based on Linux kernel.
+# https://www.kernel.org/doc/html/v5.0/process/coding-style.html
+indent_style = tab
+indent_size = 8
+tab_width = 8
+ij_c_function_brace_placement = next_line
+ij_c_indent_c_struct_members = 8
+ij_c_indent_class_members = 8
+ij_c_indent_inside_code_block = 8
+ij_c_indent_namespace_members = 8

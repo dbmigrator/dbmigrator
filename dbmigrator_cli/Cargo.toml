@@ -1,0 +1,48 @@
+[package]
+name = "dbmigrator_cli"
+version = "0.2.0"
+description = "Provides the CLI for the dbmigrator crate"
+authors = ["Przemyslaw Sztoch <przemyslaw@sztoch.pl>"]
+license = "MIT OR Apache-2.0"
+documentation = "https://docs.rs/dbmigrator/"
+repository = "https://github.com/dbmigrator/dbmigrator"
+readme = "README.md"
+keywords = ["sql", "migrations", "cli"]
+edition = "2021"
+
+[[bin]]
+name = "dbmigrator"
+path = "src/main.rs"
+
+[features]
+default = ["postgresql", "mysql", "mssql"]
+postgresql = ["dbmigrator/tokio-postgres", "tokio"]
+mysql = ["dbmigrator/mysql_async", "tokio"]
+mssql = ["dbmigrator/tiberius", "tokio"]
+
+[dependencies]
+dbmigrator = { version = "0.2.0", path = "../dbmigrator", default-features = false, features = ["toml"] }
+clap = { version = "4", features = ["derive"] }
+human-panic = "2"
+toml = "0.8"
+env_logger = "0.11"
+log = "0.4"
+anyhow = "1"
+regex = "1"
+walkdir = "2.3.1"
+cfg-if = "1.0.0"
+tokio = { version = "1.0", features = ["full"], optional = true }
+thiserror = "1.0.64"
+comfy-table = { version = "7", features = ["tty", "console"] }
+console = { version = "0.15", default-features = false, features = ["ansi-parsing"] }
+indicatif = "0.17.8"
+time = { version = "0.3", features = ["parsing", "formatting"] }
+
+[dev-dependencies]
+predicates = "3"
+assert_cmd = "2"
+
+[package.metadata.deb]
+name = "dbmigrator"
+maintainer = "Przemyslaw Sztoch <przemyslaw@sztoch.pl>"
+depends = "libssl-dev"

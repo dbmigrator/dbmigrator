@@ -1,0 +1,7 @@
+[workspace]
+resolver = "2"
+members = [
+    "dbmigrator",
+    "dbmigrator_cli",
+#    "dbmigrator_macros",
+]

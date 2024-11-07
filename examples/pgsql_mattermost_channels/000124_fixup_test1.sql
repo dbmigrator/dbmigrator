@@ -1,0 +1,4 @@
+-- old_checksum: 19231395817a02061c36a69a16d7d1561920969bfe85c660940e65a00a4b0cef
+-- new_checksum: 59231395817a0206fc36a69a16d7d1561920969bfe85c660940e65a00a4b0cef
+-- new_name: remove_manage_team_permission.up
+-- maximum_version: 000127
