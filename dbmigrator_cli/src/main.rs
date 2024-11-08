@@ -11,14 +11,18 @@ use dbmigrator::{
     simple_compare, simple_kind_detector, AsyncDriver, Changelog, Config, Migrator,
     SIMPLE_FILENAME_PATTERN,
 };
-use env_logger::{Builder, Target};
 use indicatif::{HumanDuration, ProgressBar, ProgressStyle};
-use log::LevelFilter;
-use std::io::Write;
 use std::time::Instant;
 use time::ext::NumericalDuration;
 
 fn main() {
+    human_panic::setup_panic!(human_panic::Metadata::new(
+        env!("CARGO_PKG_NAME"),
+        env!("CARGO_PKG_VERSION")
+    )
+    .homepage(env!("CARGO_PKG_HOMEPAGE"))
+    .support("Open a issue at https://github.com/dbmigrator/dbmigrator/issue"));
+
     if let Err(e) = crate::inner_main() {
         eprintln!("{e}");
         std::process::exit(1)
@@ -26,15 +30,6 @@ fn main() {
 }
 
 fn inner_main() -> Result<(), CliError> {
-    human_panic::setup_panic!();
-
-    let mut builder = Builder::new();
-    builder
-        .format(|buf, record| writeln!(buf, "{}", record.args()))
-        .filter(Some("dbmigrator::traits"), LevelFilter::Info)
-        .target(Target::Stdout)
-        .init();
-
     let cli = Cli::parse();
     match cli.command {
         Some(Command::ShowConfig) | Some(Command::ShowChangelog(_)) | Some(Command::ShowPlan) => {

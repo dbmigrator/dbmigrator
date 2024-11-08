@@ -1,9 +1,10 @@
 [package]
 name = "dbmigrator_cli"
-version = "0.2.0"
+version = "0.3.0"
 description = "Provides the CLI for the dbmigrator crate"
 authors = ["Przemyslaw Sztoch <przemyslaw@sztoch.pl>"]
 license = "MIT OR Apache-2.0"
+homepage = "https://github.com/dbmigrator"
 documentation = "https://docs.rs/dbmigrator/"
 repository = "https://github.com/dbmigrator/dbmigrator"
 readme = "README.md"
@@ -21,21 +22,15 @@ mysql = ["dbmigrator/mysql_async", "tokio"]
 mssql = ["dbmigrator/tiberius", "tokio"]
 
 [dependencies]
-dbmigrator = { version = "0.2.0", path = "../dbmigrator", default-features = false, features = ["toml"] }
-clap = { version = "4", features = ["derive"] }
+dbmigrator = { version = "0.3.0", path = "../dbmigrator", default-features = false }
 human-panic = "2"
-toml = "0.8"
-env_logger = "0.11"
-log = "0.4"
-anyhow = "1"
+clap = { version = "4", features = ["derive"] }
 regex = "1"
-walkdir = "2.3.1"
-cfg-if = "1.0.0"
-tokio = { version = "1.0", features = ["full"], optional = true }
-thiserror = "1.0.64"
-comfy-table = { version = "7", features = ["tty", "console"] }
+tokio = { version = "1", features = ["full"], optional = true }
+thiserror = "2"
 console = { version = "0.15", default-features = false, features = ["ansi-parsing"] }
 indicatif = "0.17.8"
+comfy-table = { version = "7", features = ["tty", "console"] }
 time = { version = "0.3", features = ["parsing", "formatting"] }
 
 [dev-dependencies]

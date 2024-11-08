@@ -1,4 +1,3 @@
-use base64::Engine;
 use regex::Regex;
 use sha2::{Digest, Sha256};
 use std::cmp::Ordering;

@@ -1,6 +1,6 @@
 [package]
 name = "dbmigrator"
-version = "0.2.0"
+version = "0.3.0"
 rust-version = "1.82"
 description = "Powerful SQL migration toolkit for Rust"
 authors = [ "Przemyslaw Sztoch <przemyslaw@sztoch.pl>" ]
@@ -13,41 +13,32 @@ categories = ["database"]
 edition = "2021"
 
 [features]
-default = ["toml"]
 tokio-postgres = ["dep:tokio-postgres", "tokio", "tokio/rt"]
 mysql_async = ["dep:mysql_async"]
 tiberius = ["dep:tiberius", "futures", "tokio", "tokio/net", "tokio-util", "serde"]
 serde = ["dep:serde"]
-toml = ["serde", "dep:toml"]
 
 [dependencies]
 async-trait = "0.1"
-cfg-if = "1.0"
-log = "0.4"
 regex = "1"
-siphasher = "1.0"
-thiserror = "1"
+thiserror = "2"
 url = "2.0"
-walkdir = "2.3.1"
+walkdir = "2.4"
 sha2 = "0.10"
 version-compare = "0.2.0"
-base64 = "0.21"
 
 # allow multiple versions of the same dependency if API is similar
-tokio-postgres = { version = ">= 0.5, <= 0.7", optional = true, features = ["with-time-0_3"] }
-mysql_async = { version = ">= 0.28, <= 0.34", optional = true, default-features = false, features = ["minimal"] }
+tokio-postgres = { version = ">= 0.5", optional = true, features = ["with-time-0_3"] }
+mysql_async = { version = ">= 0.28", optional = true, default-features = false, features = ["minimal"] }
 tiberius = { version = ">= 0.7, <= 0.12", optional = true, default-features = false }
-tokio = { version = "1.0", optional = true }
+tokio = { version = "1", optional = true }
 futures = { version = "0.3.16", optional = true, features = ["async-await"] }
 tokio-util = { version = "0.7.7", features = ["compat"], optional = true }
 time = { version = "0.3", features = ["parsing", "formatting"] }
 serde = { version = "1", features = ["derive"], optional = true }
-toml = { version = "0.8.8", optional = true }
 
 [dev-dependencies]
-barrel = { git = "https://github.com/jxs/barrel", features = ["sqlite3", "pg", "mysql", "mssql"] }
-tempfile = "3.1.0"
-#predicates = "3"
+tempfile = "3"
 
 [package.metadata.docs.rs]
 all-features = true
