@@ -1,7 +1,9 @@
 //! Main entry point for the dbmigrator cli tool
 
 mod cli;
+mod ddl;
 
+use std::collections::HashMap;
 use crate::cli::{CliError, Command};
 use clap::Parser;
 use cli::Cli;
@@ -12,8 +14,14 @@ use dbmigrator::{
     SIMPLE_FILENAME_PATTERN,
 };
 use indicatif::{HumanDuration, ProgressBar, ProgressStyle};
+use pgarchive::Archive;
+use std::fs::File;
+use std::io::Write;
+use std::path::Path;
 use std::time::Instant;
+use serde_yaml::to_string;
 use time::ext::NumericalDuration;
+use crate::ddl::DdlConfig;
 
 fn main() {
     human_panic::setup_panic!(human_panic::Metadata::new(
@@ -55,6 +63,76 @@ fn inner_main() -> Result<(), CliError> {
             }
         },
         Some(Command::Migrate(_)) => migrator_command(&cli),
+        Some(Command::DumpSchema) => {
+            if let Some(db_url) = cli.db_url {
+                let mut dump_file = cli.ddl_path.to_path_buf();
+                std::fs::create_dir_all(&cli.ddl_path)?;
+                dump_file.push(Path::new("schema.pgdump"));
+                let result = std::process::Command::new("pg_dump")
+                    .arg("-f")
+                    .arg(dump_file.as_os_str())
+                    .arg("--format=c")
+                    .arg("--schema-only")
+                    .arg("--exclude-schema=_timescaledb_catalog")
+                    .arg("--exclude-schema=_timescaledb_internal")
+                    .arg(db_url.as_str())
+                    .status()?;
+                println!("Exit status: {}", result);
+                let ddl_config: DdlConfig = serde_yaml::from_str(include_str!("../ddlconfig.yaml")).map_err(|e|CliError::IoError(std::io::Error::new(std::io::ErrorKind::InvalidData, e)))?;
+                let mut file = File::open(dump_file)?;
+                match Archive::parse(&mut file) {
+                    Ok(archive) => {
+                        let mut sql_files : HashMap<String, String> = HashMap::new();
+                        println!(
+                            "namespace\tkind\tname\tsubkind\tsubname\tid\tsection\thas_dumper\tclass\toid\tdesc\ttag\towner\toffset\tdependencies");
+                        for entry in archive.toc_entries {
+                            let filename = ddl_config.pgddl_filename(&entry).unwrap_or("unclassified.sql".to_string());
+                            let e = sql_files.entry(filename.clone()).or_insert(String::new());
+                            e.push_str(format!("-- Name: {}; Type: {}; Schema: {}; Owner: {}\n", entry.tag, entry.desc, entry.namespace, entry.owner).as_str());
+                            if !entry.defn.is_empty() {
+                                e.push_str(entry.defn.as_str());
+                            }
+                            if !entry.drop_stmt.is_empty() {
+                                e.push_str("-- ");
+                                e.push_str(entry.drop_stmt.as_str());
+                            }
+                            if !entry.copy_stmt.is_empty() {
+                                e.push_str("-- ");
+                                e.push_str(entry.copy_stmt.as_str());
+                            }
+                            e.push_str("\n");
+                            let ddl = ddl::DefItem::from_toc_entry(&entry);
+                            println!(
+                                "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{:?}\t{:?}",
+                                filename,
+                                ddl.write_tab(),
+                                entry.id,
+                                entry.section,
+                                entry.had_dumper,
+                                entry.table_oid,
+                                entry.oid,
+                                entry.desc,
+                                entry.tag,
+                                entry.owner,
+                                entry.offset,
+                                entry.dependencies
+                            );
+                        }
+                        for sql_file in sql_files {
+                            let mut sql_path = cli.ddl_path.to_path_buf();
+                            sql_path.push(sql_file.0);
+                            if let Some(parent_dir) = sql_path.parent() {
+                                std::fs::create_dir_all(parent_dir)?;
+                            }
+                            let mut file = File::create(sql_path)?;
+                            file.write_all(sql_file.1.as_bytes())?;
+                        }
+                    }
+                    Err(e) => println!("can not read file: {:?}", e),
+                };
+            }
+            Ok(())
+        }
         _ => Err(CliError::UnknownCommand),
     }
 }

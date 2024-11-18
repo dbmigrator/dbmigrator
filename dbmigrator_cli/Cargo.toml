@@ -1,6 +1,6 @@
 [package]
 name = "dbmigrator_cli"
-version = "0.3.0"
+version = "0.4.0-dev"
 description = "Provides the CLI for the dbmigrator crate"
 authors = ["Przemyslaw Sztoch <przemyslaw@sztoch.pl>"]
 license = "MIT OR Apache-2.0"
@@ -22,7 +22,7 @@ mysql = ["dbmigrator/mysql_async", "tokio"]
 mssql = ["dbmigrator/tiberius", "tokio"]
 
 [dependencies]
-dbmigrator = { version = "0.3.0", path = "../dbmigrator", default-features = false }
+dbmigrator = { version = "0.4.0-dev", path = "../dbmigrator", default-features = false }
 human-panic = "2"
 clap = { version = "4", features = ["derive"] }
 regex = "1"
@@ -32,6 +32,11 @@ console = { version = "0.15", default-features = false, features = ["ansi-parsin
 indicatif = "0.17.8"
 comfy-table = { version = "7", features = ["tty", "console"] }
 time = { version = "0.3", features = ["parsing", "formatting"] }
+pgarchive = "0.3"
+serde = { version = "1.0.214", features = ["derive"] }
+
+handlebars = "6"
+serde_yaml = "0.9"
 
 [dev-dependencies]
 predicates = "3"

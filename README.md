@@ -101,6 +101,12 @@ This can be optimized by periodically issuing a baseline recipe for release vers
 with a consolidated SQL script.
 When initializing a new database, the latest baseline version will be used.
 
+### DDL
+
+* `parseAclItem` in `postgres/src/bin/pg_dump/dumputils.c`
+* `_getObjectDescription` in `postgres/src/bin/pg_dump/pg_backup_archiver.c`
+
+
 ## License
 
 This project is licensed under the [MIT license](LICENSE-MIT) and [Apache license](LICENSE-APACHE-2.0).

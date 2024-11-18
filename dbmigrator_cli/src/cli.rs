@@ -15,6 +15,10 @@ pub struct Cli {
     /// Migration recipes directory path
     #[arg(short = 'M', long, default_value = "./migrations")]
     pub migrations: PathBuf,
+    
+    /// DDL dump directory path
+    #[arg(long, default_value = "./ddl")]
+    pub ddl_path: PathBuf,
 
     /// Allow creating changelog table if not exists.
     #[arg(long, default_value = "false")]
