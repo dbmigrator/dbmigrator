@@ -1,104 +1,138 @@
-postgres_ddl_ruleset:
-  - empty_namespace: true
-    desc_pattern: ENCODING|STDSTRINGS|SEARCHPATH|DATABASE|DEFAULT ACL|EVENT TRIGGER|ACCESS METHOD|LANGUAGE|PROCEDURAL LANGUAGE|TRANSFORM
-    filename: database.sql
-  - empty_namespace: true
-    desc_pattern: COMMENT|ACL
-    tag_pattern: "^DATABASE ([[:word:]]+).([[:word:]]+|\"[[:word:] ]+\")$"
-    filename: database.sql
+- empty_namespace: true
+  desc_pattern: ENCODING|STDSTRINGS|SEARCHPATH
+  filename: dump.sql
 
-  - empty_namespace: true
-    desc_pattern: EXTENSIONS
-    tag_pattern: "^([[:word:]]+)$"
-    filename: extensions.sql
-  - empty_namespace: true
-    desc_pattern: COMMENT
-    tag_pattern: "^EXTENSIONS ([[:word:]]+)"
-    filename: extensions.sql
+- empty_namespace: true
+  desc_pattern: DATABASE|DEFAULT ACL|EVENT TRIGGER|ACCESS METHOD|LANGUAGE|PROCEDURAL LANGUAGE|TRANSFORM
+  filename: database.sql
+- empty_namespace: true
+  desc_pattern: COMMENT|ACL
+  tag_pattern: "^DATABASE ([[:word:]]+).{name}$"
+  filename: database.sql
 
-  - empty_namespace: true
-    desc_pattern: PUBLICATION
-    tag_pattern: "^([[:word:]]+)$"
-    filename: publication-{{ tag_parts.1 }}.sql
-  - empty_namespace: false
-    desc_pattern: PUBLICATION TABLE|PUBLICATION TABLES IN SCHEMA
-    tag_pattern: "^([[:word:]]+) "
-    filename: publication-{{ tag_parts.1 }}.sql
-  - empty_namespace: true
-    desc_pattern: COMMENT
-    tag_pattern: "^PUBLICATION ([[:word:]]+)"
-    filename: publication-{{ tag_parts.1 }}.sql
+- empty_namespace: true
+  desc_pattern: CAST
+  tag_pattern: "^{name}$"
+  filename: casts.sql
+- empty_namespace: true
+  desc_pattern: COMMENT
+  tag_pattern: "^CAST {name}"
+  filename: casts.sql
 
-  - empty_namespace: true
-    desc_pattern: SUBSCRIPTION
-    tag_pattern: "^([[:word:]]+)$"
-    filename: subscriptions.sql
-  - empty_namespace: true
-    desc_pattern: COMMENT
-    tag_pattern: "^SUBSCRIPTION ([[:word:]]+)"
-    filename: subscriptions.sql
+- empty_namespace: true
+  desc_pattern: EXTENSION
+  tag_pattern: "^{name}$"
+  filename: extensions.sql
+- empty_namespace: true
+  desc_pattern: COMMENT
+  tag_pattern: "^EXTENSION {name}"
+  filename: extensions.sql
 
-  - empty_namespace: true
-    desc_pattern: FOREIGN DATA WRAPPER|SERVER|USER MAPPING
-    tag_pattern: "^([[:word:]]+)$"
-    filename: data-wrappers.sql
-  - empty_namespace: true
-    desc_pattern: ACL|COMMENT
-    tag_pattern: "^FOREIGN DATA WRAPPER|FOREIGN SERVER ([[:word:]]+)"
-    filename: data-wrappers.sql
+- empty_namespace: true
+  desc_pattern: PUBLICATION
+  tag_pattern: "^{name}$"
+  filename: publication-{{ tag_parts.1 }}.sql
+- empty_namespace: false
+  desc_pattern: PUBLICATION TABLE|PUBLICATION TABLES IN SCHEMA
+  tag_pattern: "^{name} "
+  filename: publication-{{ tag_parts.1 }}.sql
+- empty_namespace: true
+  desc_pattern: COMMENT
+  tag_pattern: "^PUBLICATION {name}"
+  filename: publication-{{ tag_parts.1 }}.sql
 
-  - empty_namespace: true
-    desc_pattern: SCHEMA
-    tag_pattern: "^([[:word:]]+)$"
-    filename: "{{ tag_parts.1 }}/schema.sql"
-  - empty_namespace: true
-    desc_pattern: COMMENT
-    tag_pattern: "^SCHEMA ([[:word:]]+)"
-    filename: "{{ tag_parts.1 }}/schema.sql"
-  - empty_namespace: true
-    desc_pattern: ACL
-    tag_pattern: "^SCHEMA ([[:word:]]+)"
-    filename: "{{ tag_parts.1 }}/schema.sql"
-  - desc_pattern: DEFAULT ACL
-    filename: "{{ namespace }}/schema.sql"
+- empty_namespace: true
+  desc_pattern: SUBSCRIPTION
+  tag_pattern: "^{name}$"
+  filename: subscriptions.sql
+- empty_namespace: true
+  desc_pattern: COMMENT
+  tag_pattern: "^SUBSCRIPTION {name}"
+  filename: subscriptions.sql
 
-  - desc_pattern: COLLATION
-    filename: "{{ namespace }}/collations.sql"
+- empty_namespace: true
+  desc_pattern: FOREIGN DATA WRAPPER|SERVER|USER MAPPING
+  tag_pattern: "^{name}$"
+  filename: data-wrappers.sql
+- empty_namespace: true
+  desc_pattern: ACL|COMMENT
+  tag_pattern: "^FOREIGN DATA WRAPPER|FOREIGN SERVER {name}"
+  filename: data-wrappers.sql
 
-  - desc_pattern: CONVERSION
-    filename: "{{ namespace }}/conversions.sql"
+- empty_namespace: true
+  desc_pattern: SCHEMA
+  tag_pattern: "^{name}$"
+  filename: "{{ tag_parts.1 }}/schema-{{ tag_parts.1 }}.sql"
+- empty_namespace: true
+  desc_pattern: COMMENT
+  tag_pattern: "^SCHEMA {name}"
+  filename: "{{ tag_parts.1 }}/schema-{{ tag_parts.1 }}.sql"
+- empty_namespace: true
+  desc_pattern: ACL
+  tag_pattern: "^SCHEMA {name}"
+  filename: "{{ tag_parts.1 }}/schema-{{ tag_parts.1 }}.sql"
+- desc_pattern: DEFAULT ACL
+  filename: "{{ namespace }}/schema-{{ namespace }}.sql"
 
-  - desc_pattern: OPERATOR|OPERATOR FAMILY|OPERATOR CLASS
-    filename: "{{ namespace }}/operators.sql"
+- desc_pattern: AGGREGATE
+  tag_pattern: "^{name}\\(.*\\)$"
+  filename: "{{ namespace }}/aggregates.sql"
+- desc_pattern: COMMENT
+  tag_pattern: "^AGGREGATE {name}\\(.*\\)$"
+  filename: "{{ namespace }}/aggregates.sql"
 
-  - desc_pattern: TEXT SEARCH PARSER|TEXT SEARCH TEMPLATE|TEXT SEARCH DICTIONARY|TEXT SEARCH CONFIGURATION
-    filename: "{{ namespace }}/fts.sql"
+- desc_pattern: COLLATION
+  filename: "{{ namespace }}/collations.sql"
+- desc_pattern: COMMENT
+  tag_pattern: "^COLLATION {name}$"
+  filename: "{{ namespace }}/collations.sql"
 
-  - desc_pattern: INDEX
-    filename: "{{ namespace }}/indexes.sql"
+- desc_pattern: CONVERSION
+  filename: "{{ namespace }}/conversions.sql"
+- desc_pattern: COMMENT
+  tag_pattern: "^CONVERSION {name}$"
+  filename: "{{ namespace }}/conversions.sql"
 
-  - desc_pattern: TABLE|VIEW|MATERIALIZED VIEW|TYPE|DOMAIN|ROW SECURITY
-    tag_pattern: "^([[:word:]]+)$"
-    filename: "{{ namespace }}/type-{{ tag_parts.1 }}.sql"
-  - desc_pattern: TRIGGER|POLICY|RULE|CONSTRAINT|FK CONSTRAINT|DEFAULT
-    tag_pattern: "^([[:word:]]+) ([[:word:]]+)$"
-    filename: "{{ namespace }}/type-{{ tag_parts.1 }}.sql"
-  - desc_pattern: COMMENT|ACL
-    tag_pattern: "^(TABLE|VIEW|MATERIALIZED VIEW|TYPE|DOMAIN) ([[:word:]]+)$"
-    filename: "{{ namespace }}/type-{{ tag_parts.2 }}.sql"
-  - desc_pattern: COMMENT|ACL
-    tag_pattern: "^COLUMN ([[:word:]]+).([[:word:]]+|\"[[:word:] ]+\")$"
-    filename: "{{ namespace }}/type-{{ tag_parts.1 }}.sql"
+- desc_pattern: OPERATOR|OPERATOR FAMILY|OPERATOR CLASS
+  filename: "{{ namespace }}/operators.sql"
+- desc_pattern: COMMENT
+  tag_pattern: "^(OPERATOR|OPERATOR FAMILY|OPERATOR CLASS) {name}(\\(.*\\))?$"
+  filename: "{{ namespace }}/operators.sql"
 
-  - desc_pattern: SEQUENCE|SEQUENCE OWNED BY
-    tag_pattern: "^([[:word:]]+)$"
-    filename: "{{ namespace }}/seq-{{ tag_parts.1 }}.sql"
+- desc_pattern: TEXT SEARCH PARSER|TEXT SEARCH TEMPLATE|TEXT SEARCH DICTIONARY|TEXT SEARCH CONFIGURATION
+  filename: "{{ namespace }}/fts.sql"
+- desc_pattern: COMMENT
+  tag_pattern: "^(TEXT SEARCH PARSER|TEXT SEARCH TEMPLATE|TEXT SEARCH DICTIONARY|TEXT SEARCH CONFIGURATION) {name}$"
+  filename: "{{ namespace }}/fts.sql"
 
-  - desc_pattern: FUNCTION|PROCEDURE|AGGREGATE
-    tag_pattern: "^([[:word:]]+)\\(.*\\)$"
-    filename: "{{ namespace }}/func-{{ tag_parts.1 }}.sql"
-  - desc_pattern: COMMENT|ACL
-    tag_pattern: "^(FUNCTION|PROCEDURE|AGGREGATE) ([[:word:]]+)\\(.*\\)$"
-    filename: "{{ namespace }}/func-{{ tag_parts.2 }}.sql"
+- desc_pattern: INDEX
+  filename: "{{ namespace }}/indexes.sql"
+- desc_pattern: COMMENT
+  tag_pattern: "^INDEX {name}$"
+  filename: "{{ namespace }}/indexes.sql"
 
-  - filename: "{{ namespace }}/unclassified.sql"
+- desc_pattern: SEQUENCE|SEQUENCE OWNED BY
+  tag_pattern: "^{name}$"
+  filename: "{{ namespace }}/sequences.sql"
+
+- desc_pattern: TABLE|VIEW|MATERIALIZED VIEW|TYPE|DOMAIN|ROW SECURITY
+  tag_pattern: "^{name}$"
+  filename: "{{ namespace }}/types/{{ tag_parts.1 }}.sql"
+- desc_pattern: TRIGGER|POLICY|RULE|CONSTRAINT|FK CONSTRAINT|DEFAULT
+  tag_pattern: "^{name} {name}$"
+  filename: "{{ namespace }}/types/{{ tag_parts.1 }}.sql"
+- desc_pattern: COMMENT|ACL
+  tag_pattern: "^(TABLE|VIEW|MATERIALIZED VIEW|TYPE|DOMAIN) {name}$"
+  filename: "{{ namespace }}/types/{{ tag_parts.2 }}.sql"
+- desc_pattern: COMMENT|ACL
+  tag_pattern: "^COLUMN {name}.{name}$"
+  filename: "{{ namespace }}/types/{{ tag_parts.1 }}.sql"
+
+- desc_pattern: FUNCTION|PROCEDURE
+  tag_pattern: "^{name}\\(.*\\)$"
+  filename: "{{ namespace }}/functions/{{ tag_parts.1 }}.sql"
+- desc_pattern: COMMENT|ACL
+  tag_pattern: "^(FUNCTION|PROCEDURE|AGGREGATE) {name}\\(.*\\)$"
+  filename: "{{ namespace }}/functions/{{ tag_parts.2 }}.sql"
+
+- filename: "{{ namespace }}/unclassified.sql"

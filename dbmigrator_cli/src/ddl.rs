@@ -1,57 +1,6 @@
 use pgarchive::TocEntry;
-use regex::Regex;
 use serde::{Deserialize, Serialize};
 use handlebars::Handlebars;
-
-#[derive(Debug, Clone, Deserialize)]
-pub struct DdlConfig {
-    pub postgres_ddl_ruleset: Vec<PgDdlRule>,
-}
-
-#[derive(Debug, Clone, Serialize)]
-struct TemplateData {
-    namespace: String,
-    desc_parts: Vec<String>,
-    tag_parts: Vec<String>,
-}
-
-impl DdlConfig {
-    pub fn pgddl_filename(&self, entry: &TocEntry) -> Option<String> {
-        for rule in self.postgres_ddl_ruleset.iter() {
-            if rule.empty_namespace != entry.namespace.is_empty() {
-                continue;
-            }
-            let desc_regex = regex::Regex::new(rule.desc_pattern.as_deref().unwrap_or(".*")).unwrap();
-            let tag_regex = regex::Regex::new(rule.tag_pattern.as_deref().unwrap_or(".*")).unwrap();
-            if let Some(desc_captures) = desc_regex.captures(&entry.desc) {
-                if let Some(tag_captures) = tag_regex.captures(&entry.tag) {
-                    let data = TemplateData {
-                        namespace: entry.namespace.clone(),
-                        desc_parts: desc_captures
-                            .iter()
-                            .map(|m| m.unwrap().as_str().to_string())
-                            .collect(),
-                        tag_parts: tag_captures
-                            .iter()
-                            .map(|m| m.unwrap().as_str().to_string())
-                            .collect(),
-                    };
-                    let mut handlebars = Handlebars::new();
-                    handlebars.register_template_string("file", &rule.filename).unwrap();
-
-                    match handlebars.render("file", &data) {
-                        Ok(filename) => return Some(filename),
-                        Err(e) => {
-                            eprintln!("Error rendering template: {}", e);
-                            return Some("error.sql".to_string());
-                        },
-                    }
-                }
-            }
-        };
-        None
-    }
-}
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct PgDdlRule {
@@ -62,114 +11,94 @@ pub struct PgDdlRule {
     pub filename: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub struct DefKey {
-    pub namespace: Option<String>,
-    pub kind: String,
-    pub name: Option<String>,
+#[derive(Debug, Clone, Serialize)]
+struct TemplateData {
+    namespace: String,
+    desc_parts: Vec<String>,
+    tag_parts: Vec<String>,
 }
 
-#[derive(Debug, Clone)]
-pub struct DefItem {
-    pub key: DefKey,
-    pub sub_kind: Option<String>,
-    pub sub_name: Option<String>,
-    pub sql_create: String,
-    pub sql_drop: String,
+#[derive(Debug)]
+struct PgDdlMatcher {
+    empty_namespace: bool,
+    desc_regex: regex::Regex,
+    tag_regex: regex::Regex,
+    filename_template: String,
 }
 
-impl DefItem {
-    pub fn from_toc_entry(entry: &TocEntry) -> Self {
-        let namespace = if entry.namespace.is_empty() {
-            None
-        } else {
-            Some(entry.namespace.to_string())
-        };
-        let mut tag_parts = entry.tag.splitn(2, ' ');
-        let tag_part1 = tag_parts.next().unwrap_or(&"");
-        let tag_part2 = tag_parts.next().unwrap_or(&"");
+impl PgDdlMatcher {
+    fn new(handlebars: &mut Handlebars, rule: &PgDdlRule) -> Result<Self, regex::Error> {
+        let desc_pattern = rule.desc_pattern.as_deref().unwrap_or(".*");
+        let desc_pattern = desc_pattern.replace("{name}", r#"([[:word:]-]+|\"[[:word:]- ]+\")"#);
+        let desc_regex = regex::Regex::new(&desc_pattern)?;
+        let tag_pattern = rule.tag_pattern.as_deref().unwrap_or(".*");
+        let tag_pattern = tag_pattern.replace("{name}", r#"([[:word:]-]+|\"[[:word:]- ]+\")"#);
+        let tag_regex = regex::Regex::new(&tag_pattern)?;
+        handlebars.register_template_string(&rule.filename, &rule.filename).unwrap();
+        Ok(PgDdlMatcher {
+            empty_namespace: rule.empty_namespace,
+            desc_regex: desc_regex,
+            tag_regex: tag_regex,
+            filename_template: rule.filename.clone(),
+        })
+    }
 
-        let kind;
-        let name;
-        let sub_kind;
-        let sub_name;
-
-        if matches!(entry.desc.as_str(), "ACL" | "COMMENT") {
-            if tag_part1 == "COLUMN" {
-                let mut col_parts = tag_part2.splitn(2, '.');
-                kind = "TABLE".to_string();
-                name = Some(col_parts.next().unwrap_or(&"").to_string());
-                sub_kind = Some(format!("{} {}", entry.desc.as_str(), "COLUMN").to_string());
-                sub_name = Some(col_parts.next().unwrap_or(&"").to_string());
-            } else {
-                // FIXME: FOREIGN DATA WRAPPER dummy
-                // FIXME: FOREIGN SERVER s1
-                // TEXT SEARCH PARSER alt_ts_prs1
-                // TEXT SEARCH TEMPLATE alt_ts_temp1
-                // TEXT SEARCH DICTIONARY alt_ts_dict1
-                // TEXT SEARCH CONFIGURATION alt_ts_conf1
-                kind = tag_part1.to_string();
-                name = Some(tag_part2.to_string());
-                sub_kind = Some(entry.desc.clone());
-                sub_name = None;
+    fn matches(&self, handlebars: &Handlebars, entry: &TocEntry) -> Result<Option<String>,handlebars::RenderError> {
+        if self.empty_namespace != entry.namespace.is_empty() {
+            return Ok(None);
+        }
+        if let Some(desc_captures) = self.desc_regex.captures(&entry.desc) {
+            if let Some(tag_captures) = self.tag_regex.captures(&entry.tag) {
+                let data = TemplateData {
+                    namespace: entry.namespace.clone(),
+                    desc_parts: desc_captures
+                        .iter()
+                        .map(|m| m.unwrap().as_str().to_string())
+                        .collect(),
+                    tag_parts: tag_captures
+                        .iter()
+                        .map(|m| m.unwrap().as_str().to_string())
+                        .collect(),
+                };
+                return Ok(Some(handlebars.render(&self.filename_template, &data)?));
             }
-        } else if matches!(
-            entry.desc.as_str(),
-            "CONSTRAINT"
-                | "DEFAULT"
-                | "FK CONSTRAINT"
-                | "POLICY"
-                | "ROW SECURITY"
-                | "RULE"
-                | "TRIGGER"
-        ) {
-            kind = "TABLE".to_string();
-            name = Some(tag_part1.to_string());
-            sub_kind = Some(entry.desc.clone());
-            sub_name = Some(tag_part2.to_string());
-        } else if matches!(
-            entry.desc.as_str(),
-            "ACCESS METHOD"
-                | "CAST"
-                | "DEFAULT ACL"
-                | "ENCODING"
-                | "EVENT TRIGGER"
-                | "FOREIGN DATA WRAPPER"
-                | "PROCEDURAL LANGUAGE"
-            | "SCHEMA"
-            | "SEARCHPATH"
-        ) {
-            kind = entry.desc.clone();
-            name = None;
-            sub_kind = None;
-            sub_name = Some(entry.tag.clone());
-        } else {
-            kind = entry.desc.clone();
-            name = Some(tag_part1.to_string());
-            sub_kind = None;
-            sub_name = Some(tag_part2.to_string());
-        };
-        Self {
-            key: DefKey {
-                namespace,
-                kind,
-                name,
-            },
-            sub_kind,
-            sub_name,
-            sql_create: entry.defn.to_string(),
-            sql_drop: entry.drop_stmt.to_string(),
+        }
+        Ok(None)
+    }
+}
+
+#[derive(Debug)]
+pub struct DdlConfig<'a> {
+    handlebars: Handlebars<'a>,
+    postgres_ddl_ruleset: Vec<PgDdlMatcher>,
+}
+
+impl<'a> DdlConfig<'a> {
+    pub fn new() -> Self {
+        DdlConfig {
+            handlebars: Handlebars::new(),
+            postgres_ddl_ruleset: Vec::new(),
+        }
+    }
+    pub fn push_postgres_ddl_ruleset(&mut self, ruleset: Vec<PgDdlRule>) {
+        for rule in ruleset.iter() {
+            match PgDdlMatcher::new(&mut self.handlebars, rule) {
+                Ok(matcher) => self.postgres_ddl_ruleset.push(matcher),
+                Err(e) => eprintln!("Error compiling regex: {}", e),
+            }
         }
     }
 
-    pub fn write_tab(&self) -> String {
-        format!(
-            "{}\t{}\t{}\t{}\t{}",
-            self.key.namespace.as_deref().unwrap_or(""),
-            self.key.kind,
-            self.key.name.as_deref().unwrap_or(""),
-            self.sub_kind.as_deref().unwrap_or(""),
-            self.sub_name.as_deref().unwrap_or(""),
-        )
+    pub fn pgddl_filename(&self, entry: &TocEntry) -> Option<String> {
+        for rule in self.postgres_ddl_ruleset.iter() {
+            match rule.matches(&self.handlebars, entry) {
+                Ok(Some(filename)) => return Some(filename),
+                Ok(None) => (),
+                Err(e) => {
+                    eprintln!("Error rendering template: {}", e);
+                }
+            }
+        };
+        None
     }
 }
