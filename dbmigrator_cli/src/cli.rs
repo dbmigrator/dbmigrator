@@ -16,10 +16,6 @@ pub struct Cli {
     #[arg(short = 'M', long, default_value = "./migrations")]
     pub migrations: PathBuf,
     
-    /// DDL dump directory path
-    #[arg(long, default_value = "./ddl")]
-    pub ddl_path: PathBuf,
-
     /// Allow creating changelog table if not exists.
     #[arg(long, default_value = "false")]
     pub auto_initialize: bool,
@@ -53,8 +49,8 @@ pub enum Command {
     /// Create empty DB and required DB roles.
     CreateDB,
 
-    /// Dump schema backup and compare with baseline
-    DumpSchema,
+    /// Dump current schema backup
+    DumpDDL(DumpDDLArgs),
 
     /// Main migrate operation
     Migrate(MigrateArgs),
@@ -73,6 +69,13 @@ pub enum Command {
     /// The current status is printed on stdout.
     /// Returns exit code 0 for `up-to-date`, or non-zero otherwise.
     Status(StatusArgs),
+}
+
+#[derive(clap::Args, Debug, Clone)]
+pub struct DumpDDLArgs {
+    /// DDL dump directory path
+    #[arg(long, default_value = "ddl")]
+    pub ddl_path: PathBuf,
 }
 
 #[derive(clap::Args, Debug, Copy, Clone)]
