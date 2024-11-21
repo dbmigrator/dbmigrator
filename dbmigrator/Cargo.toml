@@ -1,6 +1,6 @@
 [package]
 name = "dbmigrator"
-version = "0.4.0-dev"
+version = "0.4.0"
 rust-version = "1.82"
 description = "Powerful SQL migration toolkit for Rust"
 authors = [ "Przemyslaw Sztoch <przemyslaw@sztoch.pl>" ]
@@ -22,7 +22,6 @@ serde = ["dep:serde"]
 async-trait = "0.1"
 regex = "1"
 thiserror = "2"
-url = "2.0"
 walkdir = "2.4"
 sha2 = "0.10"
 version-compare = "0.2.0"
