@@ -16,10 +16,10 @@ name = "dbmigrator"
 path = "src/main.rs"
 
 [features]
-default = ["postgresql", "mysql", "mssql"]
+default = ["postgresql"] #, "mysql", "mssql"]
 postgresql = ["dbmigrator/tokio-postgres", "tokio"]
-mysql = ["dbmigrator/mysql_async", "tokio"]
-mssql = ["dbmigrator/tiberius", "tokio"]
+#mysql = ["dbmigrator/mysql_async", "tokio"]
+#mssql = ["dbmigrator/tiberius", "tokio"]
 
 [dependencies]
 dbmigrator = { version = "0.4.0", path = "../dbmigrator", default-features = false }
@@ -32,8 +32,8 @@ console = { version = "0.15", default-features = false, features = ["ansi-parsin
 indicatif = "0.17.8"
 comfy-table = { version = "7", features = ["tty", "console"] }
 time = { version = "0.3", features = ["parsing", "formatting"] }
-pgarchive = { git = "https://github.com/psztoch/pgarchive", version = "0.4.0-dev" }
 serde = { version = "1.0.214", features = ["derive"] }
+pgarchive = { git = "https://github.com/psztoch/pgarchive", version = "0.4.0-dev" }
 
 handlebars = "6"
 serde_yaml = "0.9"

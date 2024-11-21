@@ -117,7 +117,11 @@ impl<'a> PgDdlConfig<'a> {
         None
     }
 
-    pub fn analyze_pgarchive(&self, archive: Archive, flatten_folder: i8) -> HashMap<String, String> {
+    pub fn analyze_pgarchive(
+        &self,
+        archive: Archive,
+        flatten_folder: i8,
+    ) -> HashMap<String, String> {
         let mut sql_files: HashMap<String, String> = HashMap::new();
         for entry in archive.toc_entries {
             let filename = self

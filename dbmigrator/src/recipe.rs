@@ -572,6 +572,21 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_kind_from_str() {
+        assert_eq!(
+            RecipeKind::from_str("baseline").unwrap(),
+            RecipeKind::Baseline
+        );
+        assert_eq!(
+            RecipeKind::from_str("upgrade").unwrap(),
+            RecipeKind::Upgrade
+        );
+        assert_eq!(RecipeKind::from_str("revert").unwrap(), RecipeKind::Revert);
+        assert_eq!(RecipeKind::from_str("fixup").unwrap(), RecipeKind::Fixup);
+        assert!(RecipeKind::from_str("unknown").is_err());
+    }
+
+    #[test]
     fn test_parse_sql_metadata() {
         let sql = "-- version: 1.0.0\n-- name: test_migration\n-- kind: upgrade\n-- old_checksum: abc123af\n-- new_checksum: def456dd\n-- maximum_version: 2.0.0\n-- new_version: 1.1.0\n-- new_name: new_test_migration\n\nSELECT * FROM test;\n-- some: data\n-- Extra comment...";
         let mut metadata = HashMap::new();
@@ -630,7 +645,7 @@ mod tests {
     }
 
     #[test]
-    fn test_version_compare() {
+    fn use_version_compare() {
         assert_eq!(version_compare("1.0.0", "1.0.0"), std::cmp::Ordering::Equal);
         assert_eq!(version_compare("2.0.0", "10.0.1"), std::cmp::Ordering::Less);
         assert_eq!(
@@ -653,7 +668,7 @@ mod tests {
     }
 
     #[test]
-    fn test_find_sql_files_badly_named_files() {
+    fn find_sql_files_badly_named_files() {
         let tmp_dir = TempDir::new().unwrap();
         let migrations_dir = tmp_dir.path().join("migrations");
         fs::create_dir(&migrations_dir).unwrap();
@@ -670,7 +685,12 @@ mod tests {
     }
 
     #[test]
-    fn test_find_sql_files_good_named() {
+    fn find_sql_files_wrong_path() {
+        assert!(find_sql_files(Path::new("wrong_path")).is_err());
+    }
+
+    #[test]
+    fn find_sql_files_good_named() {
         let tmp_dir = TempDir::new().unwrap();
         let migrations_dir = tmp_dir.path().join("migrations");
         fs::create_dir(&migrations_dir).unwrap();
@@ -708,7 +728,7 @@ mod tests {
     }
 
     #[test]
-    fn test_load_sql_files() {
+    fn use_load_sql_files() {
         let sql_files = find_sql_files("../examples/pgsql_diesel1").unwrap();
 
         let mut migration_scripts = Vec::new();

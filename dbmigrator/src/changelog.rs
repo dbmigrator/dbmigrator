@@ -143,3 +143,63 @@ impl fmt::Display for Changelog {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn setters_and_display() {
+        let mut log = Changelog::new(
+            1,
+            "1.0.0".to_string(),
+            Some("test".to_string()),
+            "baseline".to_string(),
+            Some("cecabc122b1234567".to_string()),
+            Some("dbmigrator v1.2.3".to_string()),
+            Some(OffsetDateTime::now_utc()),
+            Some(OffsetDateTime::now_utc()),
+            None,
+        );
+        assert_eq!(
+            log.checksum32().unwrap().len(),
+            8,
+            "Check checksum32 length"
+        );
+        assert_eq!(log.is_baseline(), true);
+        assert_eq!(log.is_fix(), false);
+        assert_eq!(log.apply_by(), Some("dbmigrator v1.2.3"));
+
+        println!("Test Display: {}", log);
+
+        log.set_finish_ts(None);
+        assert_eq!(log.finish_ts(), None, "Check finish_ts is None");
+
+        assert_eq!(log.revert_ts(), None, "Check revert_ts is None");
+        log.set_revert_ts(Some(OffsetDateTime::now_utc()));
+        assert_ne!(log.revert_ts(), None, "Check revert_ts is not None");
+        println!("Test Display with None: {}", log);
+
+        let mut log = Changelog::new(
+            1,
+            "10241123-2316".to_string(),
+            None,
+            "upgrade".to_string(),
+            None,
+            Some("2021-01-01".to_string()),
+            Some(OffsetDateTime::now_utc()),
+            Some(OffsetDateTime::now_utc()),
+            None,
+        );
+        assert_eq!(log.log_id(), 1);
+        assert_eq!(log.version(), "10241123-2316");
+        assert_eq!(log.name(), None);
+        assert_eq!(log.kind(), Some(RecipeKind::Upgrade));
+        assert_eq!(log.kind_str(), "upgrade");
+        assert_eq!(log.is_upgrade(), true);
+        assert_eq!(log.checksum(), None);
+        assert_eq!(log.checksum32(), None);
+        println!("Test Debug: {:?}", log);
+        println!("Test Display: {}", log);
+    }
+}

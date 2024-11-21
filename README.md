@@ -134,7 +134,7 @@ The standard set creates the following structure:
 - database.sql
 - extensions.sql
 - public/
-    - schema-public.sql
+    - schema.sql
     - fts.sql
     - index.sql
     - sequence.sql
@@ -145,7 +145,7 @@ The standard set creates the following structure:
         - func1.sql
         - func2.sql
         - ...
-    - type/
+    - types/
         - table1.sql
         - table2.sql
         - view1.sql
@@ -153,7 +153,7 @@ The standard set creates the following structure:
         - type1.sql
         - ...
 - nextschema/
-    - schema-nextschema.sql
+    - schema.sql
     - ...
 - casts.sql
 - ...
