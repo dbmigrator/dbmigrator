@@ -32,7 +32,7 @@ console = { version = "0.15", default-features = false, features = ["ansi-parsin
 indicatif = "0.17.8"
 comfy-table = { version = "7", features = ["tty", "console"] }
 time = { version = "0.3", features = ["parsing", "formatting"] }
-pgarchive = "0.3"
+pgarchive = { git = "https://github.com/psztoch/pgarchive", version = "0.4.0-dev" }
 serde = { version = "1.0.214", features = ["derive"] }
 
 handlebars = "6"

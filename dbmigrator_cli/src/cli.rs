@@ -15,7 +15,7 @@ pub struct Cli {
     /// Migration recipes directory path
     #[arg(short = 'M', long, default_value = "./migrations")]
     pub migrations: PathBuf,
-    
+
     /// Allow creating changelog table if not exists.
     #[arg(long, default_value = "false")]
     pub auto_initialize: bool,
@@ -76,6 +76,18 @@ pub struct DumpDDLArgs {
     /// DDL dump directory path
     #[arg(long, default_value = "ddl")]
     pub ddl_path: PathBuf,
+
+    /// Clean unused SQL files
+    #[arg(short = 'c', long, default_value = "false")]
+    pub clean: bool,
+
+    /// Suppress output on stdout
+    #[arg(short = 'q', long, default_value = "false")]
+    pub quiet: bool,
+
+    /// Flatten folders
+    #[arg(short = 'f', long, default_value = "0")]
+    pub flatten_folder: i8,
 }
 
 #[derive(clap::Args, Debug, Copy, Clone)]
@@ -111,6 +123,9 @@ pub enum CliError {
 
     #[error("not implemented")]
     NotImplemented,
+
+    #[error("internal error {0}")]
+    InternalError(String),
 
     #[error(transparent)]
     IoError(std::io::Error),

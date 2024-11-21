@@ -51,28 +51,32 @@
   filename: subscriptions.sql
 
 - empty_namespace: true
-  desc_pattern: FOREIGN DATA WRAPPER|SERVER|USER MAPPING
+  desc_pattern: FOREIGN DATA WRAPPER|SERVER
   tag_pattern: "^{name}$"
   filename: data-wrappers.sql
 - empty_namespace: true
   desc_pattern: ACL|COMMENT
   tag_pattern: "^FOREIGN DATA WRAPPER|FOREIGN SERVER {name}"
   filename: data-wrappers.sql
+- empty_namespace: true
+  desc_pattern: FOREIGN DATA WRAPPER|SERVER|USER MAPPING
+  tag_pattern: "^USER MAPPING {name} SERVER {name}$"
+  filename: data-wrappers.sql
 
 - empty_namespace: true
   desc_pattern: SCHEMA
   tag_pattern: "^{name}$"
-  filename: "{{ tag_parts.1 }}/schema-{{ tag_parts.1 }}.sql"
+  filename: "{{ tag_parts.1 }}/schema.sql"
 - empty_namespace: true
   desc_pattern: COMMENT
   tag_pattern: "^SCHEMA {name}"
-  filename: "{{ tag_parts.1 }}/schema-{{ tag_parts.1 }}.sql"
+  filename: "{{ tag_parts.1 }}/schema.sql"
 - empty_namespace: true
   desc_pattern: ACL
   tag_pattern: "^SCHEMA {name}"
-  filename: "{{ tag_parts.1 }}/schema-{{ tag_parts.1 }}.sql"
+  filename: "{{ tag_parts.1 }}/schema.sql"
 - desc_pattern: DEFAULT ACL
-  filename: "{{ namespace }}/schema-{{ namespace }}.sql"
+  filename: "{{ namespace }}/schema.sql"
 
 - desc_pattern: AGGREGATE
   tag_pattern: "^{name}\\(.*\\)$"
