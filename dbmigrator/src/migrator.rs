@@ -217,7 +217,7 @@ impl Migrator {
     /// Read changelog from the database and consolidate it to an ordered and effective list.
     pub async fn read_changelog(
         &mut self,
-        client: &mut impl AsyncClient,
+        client: &mut dyn AsyncClient,
     ) -> Result<(), MigratorError> {
         let last_log_id = client
             .last_log_id(self.config.effective_log_table_name())
@@ -536,7 +536,7 @@ impl Migrator {
 
     pub async fn apply_plan(
         &self,
-        client: &mut impl AsyncClient,
+        client: &mut dyn AsyncClient,
         plan: &MigrationPlan,
     ) -> Result<(), MigratorError> {
         client
