@@ -40,6 +40,7 @@ pub enum MigratorError {
         script: RecipeScript,
     },
 
+    #[cfg(feature = "tokio-postgres")]
     #[error(transparent)]
     PgError(PgError),
 }
