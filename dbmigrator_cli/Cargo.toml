@@ -33,7 +33,7 @@ indicatif = "0.17.8"
 comfy-table = { version = "7", features = ["tty", "console"] }
 time = { version = "0.3", features = ["parsing", "formatting"] }
 serde = { version = "1.0.214", features = ["derive"] }
-pgarchive = { git = "https://github.com/psztoch/pgarchive", version = "0.4.0-dev" }
+pgarchive = { version = "0.4.0" }
 
 handlebars = "6"
 serde_yaml = "0.9"

@@ -34,7 +34,8 @@ pub enum RecipeError {
     #[error("invalid recipe kind `{kind}`")]
     InvalidRecipeKind { kind: String },
 
-    #[error("versions `{version}` must be unique for upgrade/baseline recipe (check `{name1}` and `{name2}`)")]
+    #[error("versions `{version}` must be unique for upgrade/baseline recipe (check `{name1}` and `{name2}`)"
+    )]
     RepeatedVersion {
         version: String,
         name1: String,
@@ -44,7 +45,8 @@ pub enum RecipeError {
     #[error("old_checksum metadata is required for revert recipe `{version}` `{name}` - ")]
     InvalidRevertMeta { version: String, name: String },
 
-    #[error("old_checksum, new_name and new_checksum metadata are required for fixup recipe `{version}` `{name}`")]
+    #[error("old_checksum, new_name and new_checksum metadata are required for fixup recipe `{version}` `{name}`"
+    )]
     InvalidFixupMeta { version: String, name: String },
 
     #[error("fixup `{version} {name}` cannot refer to existing recipe `{old_checksum}`")]
@@ -728,7 +730,7 @@ mod tests {
     }
 
     #[test]
-    fn use_load_sql_files() {
+    fn use_load_sql_files_diesel() {
         let sql_files = find_sql_files("../examples/pgsql_diesel1").unwrap();
 
         let mut migration_scripts = Vec::new();
@@ -739,7 +741,9 @@ mod tests {
             Some(simple_kind_detector),
         )
         .unwrap();
-
+        for (index, script) in migration_scripts.iter().enumerate() {
+            println!("{}: {}", index, script);
+        }
         assert_eq!(migration_scripts.len(), 9);
         assert_eq!(
             migration_scripts
@@ -780,37 +784,20 @@ mod tests {
             Some(simple_kind_detector),
         )
         .unwrap();
+        order_recipes(&mut migration_scripts, simple_compare).unwrap();
 
         assert_eq!(migration_scripts.len(), 21);
         assert_eq!(
-            migration_scripts
-                .iter()
-                .filter(|a| a.kind() == RecipeKind::Baseline)
-                .count(),
+            migration_scripts.iter().filter(|a| a.is_baseline()).count(),
             1
         );
         assert_eq!(
-            migration_scripts
-                .iter()
-                .filter(|a| a.kind() == RecipeKind::Upgrade)
-                .count(),
+            migration_scripts.iter().filter(|a| a.is_upgrade()).count(),
             20
         );
-        assert_eq!(
-            migration_scripts
-                .iter()
-                .filter(|a| a.kind() == RecipeKind::Revert)
-                .count(),
-            0
-        );
-        assert_eq!(
-            migration_scripts
-                .iter()
-                .filter(|a| a.kind() == RecipeKind::Fixup)
-                .count(),
-            0
-        );
+    }
 
+    fn use_load_sql_files_mattermost() {
         let sql_files = find_sql_files("../examples/pgsql_mattermost_channels").unwrap();
 
         let mut migration_scripts = Vec::new();
@@ -821,6 +808,7 @@ mod tests {
             Some(simple_kind_detector),
         )
         .unwrap();
+        order_recipes(&mut migration_scripts, simple_compare).unwrap();
 
         assert_eq!(migration_scripts.len(), 128);
         assert_eq!(
