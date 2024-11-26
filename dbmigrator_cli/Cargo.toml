@@ -1,6 +1,6 @@
 [package]
 name = "dbmigrator_cli"
-version = "0.4.1"
+version = "0.4.2-alpha"
 description = "Provides the CLI for the dbmigrator crate"
 authors = ["Przemyslaw Sztoch <przemyslaw@sztoch.pl>"]
 license = "MIT OR Apache-2.0"
@@ -22,7 +22,7 @@ postgresql = ["dbmigrator/tokio-postgres", "tokio"]
 #mssql = ["dbmigrator/tiberius", "tokio"]
 
 [dependencies]
-dbmigrator = { version = "0.4.1", path = "../dbmigrator", default-features = false }
+dbmigrator = { version = "0.4.2-alpha", path = "../dbmigrator", default-features = false }
 human-panic = "2"
 clap = { version = "4", features = ["derive"] }
 regex = "1"

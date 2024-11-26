@@ -1,9 +1,14 @@
 Powerful SQL migration toolkit for Rust.
 
+[![crates.io][crates-badge]][crates-url]
+[![Docs.rs][docs-badge]][docs-url]
 [![MIT licensed][mit-badge]][mit-url]
 
+[crates-badge]: https://img.shields.io/crates/v/dbmigrator.svg
+[crates-url]: https://crates.io/crates/dbmigrator
+[docs-badge]: https://img.shields.io/docsrs/dbmigrator.svg
+[docs-url]: https://docs.rs/dbmigrator/
 [mit-badge]: https://img.shields.io/badge/license-MIT-blue.svg
-
 [mit-url]: LICENSE-MIT
 
 ## Usage

@@ -98,28 +98,34 @@ fn inner_main() -> Result<(), CliError> {
                             let do_update = if let Ok(mut existing_file) = File::open(&sql_path) {
                                 let mut existing_content = String::new();
                                 existing_file.read_to_string(&mut existing_content)?;
-                                existing_content.as_str() != sql_content
+                                if existing_content.as_str() != sql_content {
+                                    if !args.quiet {
+                                        println!("Updated `{}`", &sql_filename);
+                                    }
+                                    true
+                                } else {
+                                    false
+                                }
                             } else {
+                                if !args.quiet {
+                                    println!("Created `{}`", &sql_filename);
+                                }
                                 true
                             };
                             if do_update {
-                                if !args.quiet {
-                                    println!("Updated `{}`", &sql_filename);
-                                }
                                 let mut file = File::create(&sql_path)?;
                                 file.write_all(sql_content.as_bytes())?;
                             }
                         }
                         for sql_file in dbmigrator::find_sql_files(&args.ddl_path)? {
-                            if let Some(sql_filename) = sql_file
+                            let sql_filename = sql_file
                                 .strip_prefix(&args.ddl_path.canonicalize().unwrap().as_path())
                                 .map_err(|_e| {
                                     CliError::InternalError("path strip prefix error".to_string())
-                                })?
-                                .as_os_str()
-                                .to_str()
-                            {
-                                if !sql_files.contains_key(&sql_filename.to_string()) {
+                                })?;
+
+                            if let Some(sql_filename) = sql_filename.as_os_str().to_str() {
+                                if !sql_files.contains_key(&sql_filename.replace("\\", "/")) {
                                     if args.clean {
                                         if !args.quiet {
                                             println!("Deleted `{}`", &sql_filename);

@@ -1,17 +1,20 @@
 /*!
 Powerful SQL migration toolkit for Rust.
 
+TODO - Work in progress... DO NOT USE IN PRODUCTION - COME BACK IN 2025 JANUARY.
+
 `dbmigrator` makes running migrations for different databases as easy as possible.
 It works by running your migrations on a provided database connection, either by embedding them on your Rust code, or via `dbmigrator_cli`.\
-Currently, [`Postgres`](https://crates.io/crates/postgres), [`Rusqlite`](https://crates.io/crates/rusqlite), and [`Mysql`](https://crates.io/crates/mysql) are supported.\
+Currently, [`Postgres`](https://crates.io/crates/postgres), are supported.\
+Planned [`Mysql`](https://crates.io/crates/mysql).\ 
 
 `dbmigrator` works with .sql file migrations.
 
 ## Usage
 
 - Migrations can be defined in .sql files.
-- Migrations must be named in the format `{1}_{2}_{3}.rs ` where `{1}` represents the migration version, `{2}` migration type (upgrade, baseline or revert) and `{3}` the optional name.
-- Migrations can be run either by embedding them on your Rust code with [`embed_migrations!`] macro, or via `dbmigrator_cli`.
+- Migrations must be named in the format `{1}_{2}.sql` where `{1}` represents the migration version, `{2}` migration kind (upgrade, baseline, revert or fixup) and name.
+- Migrations can be run either by embedding them on your Rust code with [`embed_migrations!`] macro (TODO), or via `dbmigrator_cli`.
 
 [`embed_migrations!`]: macro.embed_migrations.html
 
