@@ -60,11 +60,17 @@ impl PgDdlMatcher {
                     namespace: entry.namespace.clone(),
                     desc_parts: desc_captures
                         .iter()
-                        .map(|m| m.unwrap().as_str().to_string())
+                        .map(|m| match m {
+                            Some(m) => m.as_str().to_string(),
+                            None => String::new()
+                        })
                         .collect(),
                     tag_parts: tag_captures
                         .iter()
-                        .map(|m| m.unwrap().as_str().to_string())
+                        .map(|m| match m {
+                            Some(m) => m.as_str().to_string(),
+                            None => String::new()
+                        })
                         .collect(),
                 };
                 return Ok(Some(handlebars.render(&self.filename_template, &data)?));

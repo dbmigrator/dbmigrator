@@ -7,16 +7,16 @@
   filename: database.sql
 - empty_namespace: true
   desc_pattern: COMMENT|ACL
-  tag_pattern: "^DATABASE ([[:word:]]+).{name}$"
+  tag_pattern: "^(DATABASE|LANGUAGE) ([[:word:]]+).{name}$"
   filename: database.sql
 
 - empty_namespace: true
   desc_pattern: CAST
-  tag_pattern: "^{name}$"
+  tag_pattern: "^CAST \\(.+\\)$"
   filename: casts.sql
 - empty_namespace: true
-  desc_pattern: COMMENT
-  tag_pattern: "^CAST {name}"
+  desc_pattern: COMMENT|ACL
+  tag_pattern: "^CAST \\(.+\\)$"
   filename: casts.sql
 
 - empty_namespace: true
@@ -119,6 +119,10 @@
   tag_pattern: "^{name}$"
   filename: "{{ namespace }}/sequences.sql"
 
+- desc_pattern: STATISTICS
+  tag_pattern: "^{name}$"
+  filename: "{{ namespace }}/statistics.sql"
+
 - desc_pattern: TABLE|VIEW|MATERIALIZED VIEW|TYPE|DOMAIN|ROW SECURITY
   tag_pattern: "^{name}$"
   filename: "{{ namespace }}/types/{{ tag_parts.1 }}.sql"
@@ -128,6 +132,13 @@
 - desc_pattern: COMMENT|ACL
   tag_pattern: "^(TABLE|VIEW|MATERIALIZED VIEW|TYPE|DOMAIN) {name}$"
   filename: "{{ namespace }}/types/{{ tag_parts.2 }}.sql"
+- desc_pattern: COMMENT
+  tag_pattern: "^CONSTRAINT {name} ON {name}$"
+  filename: "{{ namespace }}/types/{{ tag_parts.2 }}.sql"
+- desc_pattern: COMMENT
+  tag_pattern: "^CONSTRAINT {name} ON DOMAIN {name}$"
+  filename: "{{ namespace }}/types/{{ tag_parts.2 }}.sql"
+
 - desc_pattern: COMMENT|ACL
   tag_pattern: "^COLUMN {name}.{name}$"
   filename: "{{ namespace }}/types/{{ tag_parts.1 }}.sql"
