@@ -6,7 +6,7 @@ TODO - Work in progress... DO NOT USE IN PRODUCTION - COME BACK IN 2025 JANUARY.
 `dbmigrator` makes running migrations for different databases as easy as possible.
 It works by running your migrations on a provided database connection, either by embedding them on your Rust code, or via `dbmigrator_cli`.\
 Currently, [`Postgres`](https://crates.io/crates/postgres), are supported.\
-Planned [`Mysql`](https://crates.io/crates/mysql).\ 
+Planned [`Mysql`](https://crates.io/crates/mysql).\
 
 `dbmigrator` works with .sql file migrations.
 

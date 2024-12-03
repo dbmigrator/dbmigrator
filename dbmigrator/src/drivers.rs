@@ -39,7 +39,7 @@ pub struct AsyncDriver {
 
 impl AsyncDriver {
     pub async fn connect(db_url: &str) -> Result<Self, MigratorError> {
-        let client  : Box<dyn AsyncClient>;
+        let client: Box<dyn AsyncClient>;
         #[cfg(feature = "tokio-postgres")]
         {
             let (pgclient, connection) = pg_connect(db_url, NoTls).await?;

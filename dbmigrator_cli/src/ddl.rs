@@ -62,14 +62,14 @@ impl PgDdlMatcher {
                         .iter()
                         .map(|m| match m {
                             Some(m) => m.as_str().to_string(),
-                            None => String::new()
+                            None => String::new(),
                         })
                         .collect(),
                     tag_parts: tag_captures
                         .iter()
                         .map(|m| match m {
                             Some(m) => m.as_str().to_string(),
-                            None => String::new()
+                            None => String::new(),
                         })
                         .collect(),
                 };
@@ -155,12 +155,12 @@ impl<'a> PgDdlConfig<'a> {
                 )
                 .as_str(),
             );
-            if !entry.defn.is_empty() {
-                e.push_str(entry.defn.as_str());
-            }
             if !entry.drop_stmt.is_empty() {
                 e.push_str("-- ");
                 e.push_str(entry.drop_stmt.as_str());
+            }
+            if !entry.defn.is_empty() {
+                e.push_str(entry.defn.as_str());
             }
             if !entry.copy_stmt.is_empty() {
                 e.push_str("-- ");

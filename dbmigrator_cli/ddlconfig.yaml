@@ -118,6 +118,9 @@
 - desc_pattern: SEQUENCE|SEQUENCE OWNED BY
   tag_pattern: "^{name}$"
   filename: "{{ namespace }}/sequences.sql"
+- desc_pattern: COMMENT|ACL
+  tag_pattern: "^SEQUENCE {name}$"
+  filename: "{{ namespace }}/sequences.sql"
 
 - desc_pattern: STATISTICS
   tag_pattern: "^{name}$"
