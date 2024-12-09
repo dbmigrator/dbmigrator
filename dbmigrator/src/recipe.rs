@@ -1,11 +1,11 @@
 use regex::Regex;
 use sha2::{Digest, Sha256};
+use std::borrow::Cow;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
-use std::sync::Arc;
 use thiserror::Error;
 use version_compare::Cmp;
 use walkdir::{DirEntry, WalkDir};
@@ -106,50 +106,50 @@ enum RecipeMeta {
     Baseline,
     Upgrade,
     Revert {
-        old_checksum: String,
-        maximum_version: String,
+        old_checksum: Cow<'static, str>,
+        maximum_version: Cow<'static, str>,
     },
     Fixup {
-        old_checksum: String,
-        maximum_version: String,
-        new_version: String,
-        new_name: String,
-        new_checksum: String,
+        old_checksum: Cow<'static, str>,
+        maximum_version: Cow<'static, str>,
+        new_version: Cow<'static, str>,
+        new_name: Cow<'static, str>,
+        new_checksum: Cow<'static, str>,
     },
 }
 
 #[derive(Clone, Debug)]
 pub struct RecipeScript {
-    version: String,
-    name: String,
-    checksum: String,
-    sql: Arc<String>,
+    version: Cow<'static, str>,
+    name: Cow<'static, str>,
+    checksum: Cow<'static, str>,
+    sql: Cow<'static, str>,
     meta: RecipeMeta,
 }
 
 impl RecipeScript {
     pub fn new(
-        version: String,
-        name: String,
-        sql: String,
+        version: Cow<'static, str>,
+        name: Cow<'static, str>,
+        sql: Cow<'static, str>,
         default_kind: Option<RecipeKind>,
     ) -> Result<RecipeScript, RecipeError> {
         let mut hasher = Sha256::new();
-        hasher.update(&sql);
+        hasher.update(&*sql);
 
         let checksum = format!("{:x}", hasher.finalize());
 
         let mut metadata = HashMap::new();
         parse_sql_metadata(&sql, &mut metadata);
 
-        let mut version = version.to_string();
+        let mut version = version;
         if let Some(meta_version) = metadata.get("version") {
-            version = meta_version.to_string();
+            version = Cow::Owned(meta_version.to_owned());
         }
 
-        let mut name = name.to_string();
+        let mut name = name;
         if let Some(meta_name) = metadata.get("name") {
-            name = meta_name.to_string();
+            name = Cow::Owned(meta_name.to_owned());
         }
 
         let mut kind = default_kind;
@@ -162,14 +162,20 @@ impl RecipeScript {
             Some(RecipeKind::Upgrade) => RecipeMeta::Upgrade,
             Some(RecipeKind::Revert) => {
                 if let Some(old_checksum) = metadata.get("old_checksum") {
-                    let maximum_version =
-                        metadata.get("maximum_version").unwrap_or(&version).clone();
+                    let maximum_version = metadata
+                        .get("maximum_version")
+                        .map(String::as_str)
+                        .unwrap_or(&version)
+                        .to_owned();
                     RecipeMeta::Revert {
-                        old_checksum: old_checksum.clone(),
-                        maximum_version,
+                        old_checksum: Cow::Owned(old_checksum.clone()),
+                        maximum_version: Cow::Owned(maximum_version),
                     }
                 } else {
-                    return Err(RecipeError::InvalidRevertMeta { version, name });
+                    return Err(RecipeError::InvalidRevertMeta {
+                        version: (*version).to_owned(),
+                        name: (*name).to_owned(),
+                    });
                 }
             }
             Some(RecipeKind::Fixup) => {
@@ -178,18 +184,28 @@ impl RecipeScript {
                     metadata.get("new_name"),
                     metadata.get("new_checksum"),
                 ) {
-                    let maximum_version =
-                        metadata.get("maximum_version").unwrap_or(&version).clone();
-                    let new_version = metadata.get("new_version").unwrap_or(&version).clone();
+                    let maximum_version = metadata
+                        .get("maximum_version")
+                        .map(String::as_str)
+                        .unwrap_or(&version)
+                        .to_owned();
+                    let new_version = metadata
+                        .get("new_version")
+                        .map(String::as_str)
+                        .unwrap_or(&version)
+                        .to_owned();
                     RecipeMeta::Fixup {
-                        old_checksum: old_checksum.clone(),
-                        maximum_version,
-                        new_version,
-                        new_name: new_name.clone(),
-                        new_checksum: new_checksum.clone(),
+                        old_checksum: Cow::Owned(old_checksum.clone()),
+                        maximum_version: Cow::Owned(maximum_version),
+                        new_version: Cow::Owned(new_version),
+                        new_name: Cow::Owned(new_name.clone()),
+                        new_checksum: Cow::Owned(new_checksum.clone()),
                     }
                 } else {
-                    return Err(RecipeError::InvalidFixupMeta { version, name });
+                    return Err(RecipeError::InvalidFixupMeta {
+                        version: (*version).to_owned(),
+                        name: (*name).to_owned(),
+                    });
                 }
             }
             _ => {
@@ -202,8 +218,8 @@ impl RecipeScript {
         Ok(RecipeScript {
             version,
             name,
-            checksum,
-            sql: Arc::new(sql),
+            checksum: Cow::Owned(checksum),
+            sql,
             meta,
         })
     }
@@ -462,7 +478,7 @@ pub fn load_sql_recipes(
                     Some(kind_detector) => kind_detector(&path, &name),
                     None => None,
                 };
-                let migration = RecipeScript::new(version, name, sql, kind)?;
+                let migration = RecipeScript::new(version.into(), name.into(), sql.into(), kind)?;
                 recipes.push(migration);
             }
             None => {
