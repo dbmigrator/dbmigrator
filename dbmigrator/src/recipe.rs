@@ -432,15 +432,47 @@ pub fn version_compare(a: &str, b: &str) -> std::cmp::Ordering {
 
 /// Loads SQL recipes from a path. This enables dynamic migration discovery, as opposed to
 /// embedding.
+pub fn load_sql_recipes_iter(
+    file_paths: impl Iterator<Item = PathBuf>,
+    filename_pattern: &str,
+    kind_detector: Option<fn(&Path, &str) -> Option<RecipeKind>>,
+) -> Result<impl Iterator<Item = Result<(PathBuf, RecipeScript), RecipeError>>, RecipeError> {
+    let regex = Regex::new(filename_pattern).map_err(|e| RecipeError::InvalidRegex(e))?;
+    Ok(RecipeLoadIter {
+        inner: file_paths,
+        regex,
+        kind_detector,
+    })
+}
+
+/// Loads SQL recipes from a path. This enables dynamic migration discovery, as opposed to
+/// embedding.
 pub fn load_sql_recipes(
     recipes: &mut Vec<RecipeScript>,
     file_paths: impl Iterator<Item = PathBuf>,
     filename_pattern: &str,
     kind_detector: Option<fn(&Path, &str) -> Option<RecipeKind>>,
 ) -> Result<(), RecipeError> {
-    let re = Regex::new(filename_pattern).map_err(|e| RecipeError::InvalidRegex(e))?;
+    let iter = load_sql_recipes_iter(file_paths, filename_pattern, kind_detector)?;
 
-    for path in file_paths {
+    for res in iter {
+        match res {
+            Ok((_, recipe)) => recipes.push(recipe),
+            Err(err) => return Err(err),
+        }
+    }
+
+    Ok(())
+}
+
+struct RecipeLoadIter<I> {
+    inner: I,
+    regex: Regex,
+    kind_detector: Option<fn(&Path, &str) -> Option<RecipeKind>>,
+}
+
+impl<I> RecipeLoadIter<I> {
+    fn load(&self, path: PathBuf) -> Result<(PathBuf, RecipeScript), RecipeError> {
         let sql = std::fs::read_to_string(path.as_path()).map_err(|e| {
             let path = path.to_owned();
             match e.kind() {
@@ -455,11 +487,11 @@ pub fn load_sql_recipes(
             .and_then(|os_str| os_str.to_os_string().into_string().ok())
         {
             Some(file_stem) => {
-                let captures =
-                    re.captures(&file_stem)
-                        .ok_or_else(|| RecipeError::InvalidFilename {
-                            file_stem: file_stem.clone(),
-                        })?;
+                let captures = self.regex.captures(&file_stem).ok_or_else(|| {
+                    RecipeError::InvalidFilename {
+                        file_stem: file_stem.clone(),
+                    }
+                })?;
                 let version: String = captures
                     .get(1)
                     .ok_or_else(|| RecipeError::InvalidFilename {
@@ -474,25 +506,30 @@ pub fn load_sql_recipes(
                     })?
                     .as_str()
                     .to_string();
-                let kind = match kind_detector {
+                let kind = match self.kind_detector {
                     Some(kind_detector) => kind_detector(&path, &name),
                     None => None,
                 };
                 let migration = RecipeScript::new(version.into(), name.into(), sql.into(), kind)?;
-                recipes.push(migration);
+                Ok((path, migration))
             }
-            None => {
-                return Err(RecipeError::InvalidRecipePath {
-                    path,
-                    source: std::io::Error::new(
-                        std::io::ErrorKind::InvalidData,
-                        "Invalid file name",
-                    ),
-                });
-            }
+            None => Err(RecipeError::InvalidRecipePath {
+                path,
+                source: std::io::Error::new(std::io::ErrorKind::InvalidData, "Invalid file name"),
+            }),
         }
     }
-    Ok(())
+}
+
+impl<I: Iterator<Item = PathBuf>> Iterator for RecipeLoadIter<I> {
+    type Item = Result<(PathBuf, RecipeScript), RecipeError>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let Some(path) = self.inner.next() else {
+            return None;
+        };
+        Some(self.load(path))
+    }
 }
 
 /// The recipe collection is ordered by version and verified.
