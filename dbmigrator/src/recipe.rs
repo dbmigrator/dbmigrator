@@ -102,7 +102,7 @@ impl std::fmt::Display for RecipeKind {
 }
 
 #[derive(Clone, Debug)]
-enum RecipeMeta {
+pub enum RecipeMeta {
     Baseline,
     Upgrade,
     Revert {
@@ -120,11 +120,11 @@ enum RecipeMeta {
 
 #[derive(Clone, Debug)]
 pub struct RecipeScript {
-    version: Cow<'static, str>,
-    name: Cow<'static, str>,
-    checksum: Cow<'static, str>,
-    sql: Cow<'static, str>,
-    meta: RecipeMeta,
+    pub version: Cow<'static, str>,
+    pub name: Cow<'static, str>,
+    pub checksum: Cow<'static, str>,
+    pub sql: Cow<'static, str>,
+    pub meta: RecipeMeta,
 }
 
 impl RecipeScript {
