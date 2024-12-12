@@ -74,11 +74,22 @@ fn inner_main() -> Result<(), CliError> {
                     .arg("--exclude-schema=_timescaledb_internal")
                     .arg("--exclude-schema=_timescaledb_catalog")
                     .arg(db_url.as_str())
-                    .status()?;
-                if !result.success() {
-                    eprintln!("pg_dump failed with exit code: {}", result);
-                    std::process::exit(1);
-                }
+                    .output();
+                match result {
+                    Err(e) => {
+                        eprintln!("pg_dump execution error: {}", e);
+                        std::process::exit(1);
+                    },
+                    Ok(result) => {
+                        if !result.status.success() {
+                            eprintln!("pg_dump failed with exit code: {}", result.status);
+                            if !result.stderr.is_empty() {
+                                eprintln!("{}", String::from_utf8_lossy(&result.stderr));
+                            }
+                            std::process::exit(1);
+                        };
+                    }
+                };
                 let mut ddl_config: PgDdlConfig = PgDdlConfig::new();
                 ddl_config
                     .set_ruleset_from_str(include_str!("../ddlconfig.yaml"))

@@ -55,12 +55,12 @@
   tag_pattern: "^{name}$"
   filename: data-wrappers.sql
 - empty_namespace: true
-  desc_pattern: ACL|COMMENT
-  tag_pattern: "^FOREIGN DATA WRAPPER|FOREIGN SERVER {name}"
+  desc_pattern: USER MAPPING
+  tag_pattern: "^USER MAPPING {name} SERVER {name}$"
   filename: data-wrappers.sql
 - empty_namespace: true
-  desc_pattern: FOREIGN DATA WRAPPER|SERVER|USER MAPPING
-  tag_pattern: "^USER MAPPING {name} SERVER {name}$"
+  desc_pattern: ACL|COMMENT
+  tag_pattern: "^FOREIGN DATA WRAPPER|FOREIGN SERVER {name}"
   filename: data-wrappers.sql
 
 - empty_namespace: true
