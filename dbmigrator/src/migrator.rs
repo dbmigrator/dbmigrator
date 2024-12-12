@@ -279,7 +279,7 @@ impl Migrator {
             (recipe.old_checksum(), recipe.maximum_version())
         {
             log_version == recipe.version()
-                && log_checksum == old_checksum
+                && log_checksum.starts_with(old_checksum)
                 && matches!(
                     (self.version_comparator)(current_version, maximum_version),
                     std::cmp::Ordering::Less | std::cmp::Ordering::Equal
