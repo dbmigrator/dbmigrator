@@ -72,7 +72,7 @@ fn inner_main() -> Result<(), CliError> {
                     gitignore_file.push(".gitignore");
 
                     let mut file = File::create(&gitignore_file)?;
-                    file.write_all(b"/schema.pgdump\n")?;
+                    file.write_all(b"/schema.pgdump\n# /database.sql - Ignore if you want to dump databases with different names.\n")?;
                 }
                 let mut dump_file = args.ddl_path.to_path_buf();
                 dump_file.push(Path::new("schema.pgdump"));

@@ -111,26 +111,32 @@ This can be optimized by periodically issuing a baseline recipe for release vers
 with a consolidated SQL script.
 When initializing a new database, the latest baseline version will be used.
 
+### DB users
+
+Some DDL commands (and thus migrations) may require superuser privileges:
+- adding untrusted extensions such as `postgis`, `file_fdw`, `timescaledb_toolkit`,
+- adding functions in untrusted languages (e.g., PL/Python).
+
+Since the above requirements are frequent enough, an architectural decision was made
+that DBMigrator will connect to the database as a superuser.
+
+Additionally, many bootstrapping tasks are much easier to perform as a superuser:
+- creating necessary roles/groups,
+- creating the database,
+- changing the owner of the objects,
+- changing permissions.
+
+On the other hand, the application in normal mode should connect to the database using 
+a regular role with limited privileges.
+
 ### DDL
 
 **DDL** (Data Definition Language) is a subset of SQL commands used to define the structure of a database.
 DDL allows you to create, modify, and delete database objects such as tables, indexes, views, functions and schemas.
 Example DDL commands include: *CREATE*, *ALTER* and *DROP*.
 
-Zawartość skryptów migracyjnych (receptur) to zazwyczaj komendy DDL. Poza kolejnymi recepturami (migracjami)
-w repozytorium kodu (np. GIT) warto przechowywać aktualny stan bazy w uporządkowanej strukturze skryptów DDL.
-
-DBMigrator pozwala na automatyczne wygenerowanie takich skryptów. Wykorzystuje do tego wewnętrznie narzędzie
-pg_dump z PostgreSQL. Daje to gwarancje, że skrypty są zgodne z aktualnym stanem bazy danych i uwzględniają
-wszystkie świeżo dodane funkcjonalności do PostgreSQL. Skrypty DDL są grupowane wg zestawu reguł. Standardowy
-zestaw tworzy następującą strukturę:
-
-**DDL** (Data Definition Language) is a subset of SQL commands used to define the structure of a database.
-DDL allows you to create, modify, and delete database objects such as tables, indexes, views, functions and schemas.
-Example DDL commands include: *CREATE*, *ALTER* and *DROP*.
-
 The content of migration scripts (recipes) is usually DDL commands. Besides subsequent recipes (migrations),
-it is worth keeping the current state of the database in an organized structure of DDL scripts 
+it is worth keeping the current state of the database in an organized structure of DDL scripts
 in the code repository (e.g., GIT).
 
 DBMigrator can automatically generate such scripts. DDL scripts are grouped according to a set of rules. 
@@ -165,7 +171,7 @@ The standard set creates the following structure:
 - unclassified.sql
 
 DBMigrator internally uses the `pg_dump` tool from PostgreSQL.
-This ensures that the DDL scripts are consistent with the current state of the database
+This ensures that the DDL scripts are consistent with the current state and version of the database
 and include all newly added functionalities to PostgreSQL.
 
 #### Custom DDL ruleset
