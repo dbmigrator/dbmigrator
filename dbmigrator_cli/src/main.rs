@@ -63,8 +63,18 @@ fn inner_main() -> Result<(), CliError> {
         Some(Command::Migrate(_)) => migrator_command(&cli),
         Some(Command::DumpDDL(args)) => {
             if let Some(db_url) = cli.db_url {
+                if !args.ddl_path.exists() {
+                    std::fs::create_dir_all(&args.ddl_path)?;
+                    if !args.quiet {
+                        println!("{:>12} DDL root path {}", console::style("Created").bold().cyan(), &args.ddl_path.display());
+                    }
+                    let mut gitignore_file = args.ddl_path.to_path_buf();
+                    gitignore_file.push(".gitignore");
+
+                    let mut file = File::create(&gitignore_file)?;
+                    file.write_all(b"/schema.pgdump\n")?;
+                }
                 let mut dump_file = args.ddl_path.to_path_buf();
-                std::fs::create_dir_all(&args.ddl_path)?;
                 dump_file.push(Path::new("schema.pgdump"));
                 let result = std::process::Command::new("pg_dump")
                     .arg("-f")
@@ -111,7 +121,7 @@ fn inner_main() -> Result<(), CliError> {
                                 existing_file.read_to_string(&mut existing_content)?;
                                 if existing_content.as_str() != sql_content {
                                     if !args.quiet {
-                                        println!("Updated `{}`", &sql_filename);
+                                        println!("{:>12} {}", console::style("Updated").bold().green(), &sql_filename);
                                     }
                                     true
                                 } else {
@@ -119,7 +129,7 @@ fn inner_main() -> Result<(), CliError> {
                                 }
                             } else {
                                 if !args.quiet {
-                                    println!("Created `{}`", &sql_filename);
+                                    println!("{:>12} {}", console::style("Created").bold().cyan(), &sql_filename);
                                 }
                                 true
                             };
@@ -139,12 +149,12 @@ fn inner_main() -> Result<(), CliError> {
                                 if !sql_files.contains_key(&sql_filename.replace("\\", "/")) {
                                     if args.clean {
                                         if !args.quiet {
-                                            println!("Deleted `{}`", &sql_filename);
+                                            println!("{:>12} {}", console::style("Deleted").bold().red(), &sql_filename);
                                         }
                                         std::fs::remove_file(&sql_file)?;
                                     } else {
                                         if !args.quiet {
-                                            println!("Unwanted file `{}`", &sql_filename);
+                                            println!("{:>12} {}", console::style("Unwanted").bold().red(), &sql_filename);
                                         }
                                     }
                                 }
