@@ -397,7 +397,7 @@ fn migrator_command(cli: &Cli) -> Result<(), CliError> {
         env!("CARGO_PKG_VERSION")
     ));
 
-    let sql_files = dbmigrator::find_sql_files(cli.migrations.as_path())?;
+    let sql_files = dbmigrator::find_sql_files(cli.migrations_path.as_path())?;
 
     let mut migration_scripts = Vec::new();
     dbmigrator::load_sql_recipes(

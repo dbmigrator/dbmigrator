@@ -189,6 +189,25 @@ When creating rules for *ACL* and *COMMENT*, analyzing PostgreSQL code may be he
 * `parseAclItem` in `postgres/src/bin/pg_dump/dumputils.c`
 * `_getObjectDescription` in `postgres/src/bin/pg_dump/pg_backup_archiver.c`
 
+### Integartion with direnv
+
+You can store your comfiguration in `.envrc` file and use [direnv](https://direnv.net) to load it.
+
+`direnv` should be installed and then configure your shell to use it.
+
+We recommend using `zsh` managed by [Zim framework](https://zimfw.sh/).
+
+Example `.envrc` file:
+```env
+export DBMIGRATOR_DB_URL="postgresql://postgres@localhost/my-db"
+export DBMIGRATOR_MIGRATIONS_PATH=$(expand_path my-db/migrations)
+export DBMIGRATOR_DDL_PATH=$(expand_path my-db/ddl)
+```
+
+You can store DB password in `.pgpass` [password file](https://www.postgresql.org/docs/current/libpq-pgpass.html) 
+in your home directory. 
+
+
 ## License
 
 This project is licensed under the [MIT license](LICENSE-MIT) and [Apache license](LICENSE-APACHE-2.0).

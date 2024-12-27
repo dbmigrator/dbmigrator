@@ -6,15 +6,15 @@ use std::path::PathBuf;
 use thiserror::Error;
 
 #[derive(clap::Parser, Debug)]
-#[command(version, about)]
+#[command(name = "dbmigrator", version, about)]
 pub struct Cli {
     /// Database URL
-    #[arg(short = 'D', long)]
+    #[arg(short = 'D', long, env="DBMIGRATOR_DB_URL")]
     pub db_url: Option<String>,
 
     /// Migration recipes directory path
-    #[arg(short = 'M', long, default_value = "./migrations")]
-    pub migrations: PathBuf,
+    #[arg(short = 'M', long, env="DBMIGRATOR_MIGRATIONS_PATH", default_value = "./migrations")]
+    pub migrations_path: PathBuf,
 
     /// Allow creating changelog table if not exists.
     #[arg(long, default_value = "false")]
@@ -74,7 +74,7 @@ pub enum Command {
 #[derive(clap::Args, Debug, Clone)]
 pub struct DumpDDLArgs {
     /// DDL dump directory path
-    #[arg(long, default_value = "ddl")]
+    #[arg(long, env="DBMIGRATOR_DDL_PATH", default_value = "ddl")]
     pub ddl_path: PathBuf,
 
     /// Clean unused SQL files
