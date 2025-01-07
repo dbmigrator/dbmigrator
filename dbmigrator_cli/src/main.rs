@@ -106,7 +106,7 @@ fn inner_main() -> Result<(), CliError> {
                     .map_err(|e| {
                         CliError::IoError(std::io::Error::new(std::io::ErrorKind::InvalidData, e))
                     })?;
-                let mut file = File::open(dump_file)?;
+                let mut file = File::open(&dump_file)?;
                 match Archive::parse(&mut file) {
                     Ok(archive) => {
                         let sql_files = ddl_config.analyze_pgarchive(archive, args.flatten_folder);
@@ -161,10 +161,14 @@ fn inner_main() -> Result<(), CliError> {
                             }
                         }
                     }
-                    Err(e) => eprintln!("can not read file: {:?}", e),
+                    Err(e) => {
+                        eprintln!("error parsing dump file '{}': {}", dump_file.display(), e);
+                        std::process::exit(1);
+                    },
                 };
             } else {
                 eprintln!("Database URL (-D) is required for DDL dump!");
+                std::process::exit(1);
             }
             Ok(())
         }
