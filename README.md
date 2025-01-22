@@ -129,6 +129,24 @@ Additionally, many bootstrapping tasks are much easier to perform as a superuser
 On the other hand, the application in normal mode should connect to the database using 
 a regular role with limited privileges.
 
+### DB ACL
+
+Security requirements demand that different applications connect to the database 
+using different users with different passwords and permissions.
+
+Most SQL implementations separate:
+- LOGIN (users with passwords for authentication) and
+- ROLE/GROUP (owners of objects and recipients of ACL permissions).
+
+DBMigrator maintains this division, even though PostgreSQL combines 
+these two types of objects into a single global role list, common to all databases:
+
+1. LOGIN roles are independent for subsequent databases (and have, among other things, different passwords)
+2. the beginnings of LOGIN role names are consistent with the names of the databases they pertain to,
+3. LOGIN roles are never part of the database schema (i.e., they will not appear as object owners and in ACL),
+4. the schema refers only to NOLOGIN roles, which do not have passwords and are common to all instances/copies of a given database,
+5. it is recommended that NOLOGIN role names also have a common prefix and it must not conflict with the potential name of a new database.
+
 ### DDL
 
 **DDL** (Data Definition Language) is a subset of SQL commands used to define the structure of a database.
