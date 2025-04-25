@@ -850,6 +850,7 @@ mod tests {
         );
     }
 
+    #[test]
     fn use_load_sql_files_mattermost() {
         let sql_files = find_sql_files("../examples/pgsql_mattermost_channels").unwrap();
 

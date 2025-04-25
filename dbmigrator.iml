@@ -7,8 +7,9 @@
       <sourceFolder url="file://$MODULE_DIR$/dbmigrator/tests" isTestSource="true" />
       <sourceFolder url="file://$MODULE_DIR$/dbmigrator_cli/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/dbmigrator_cli/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/dbmigrator_core/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/dbmigrator_macros/src" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/examples/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/examples" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
     </content>
     <orderEntry type="inheritedJdk" />

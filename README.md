@@ -17,7 +17,7 @@ Powerful SQL migration toolkit for Rust.
   `dbmigrator = { version = "0.8", features = ["tokio_postgres"]}`
 - Migrations can be defined in .sql files.
 
-## Intoduction
+## Introduction
 
 DBMigrator is a database schema change management solution that enables you
 to revise and release database changes faster and safer from development to production.
