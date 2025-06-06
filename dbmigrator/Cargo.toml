@@ -1,6 +1,6 @@
 [package]
 name = "dbmigrator"
-version = "0.4.4-alpha"
+version = "0.4.6-alpha"
 rust-version = "1.82"
 description = "Powerful SQL migration toolkit for Rust"
 authors = [ "Przemyslaw Sztoch <przemyslaw@sztoch.pl>" ]
@@ -31,8 +31,8 @@ tokio = { version = "1", optional = true }
 #tokio-util = { version = "0.7.7", features = ["compat"], optional = true }
 time = { version = "0.3", features = ["parsing", "formatting"] }
 serde = { version = "1", features = ["derive"], optional = true }
-dbmigrator_core = { version = "0.4.3-alpha", path = "../dbmigrator_core" }
-dbmigrator_macros = { version = "0.4.3-alpha", path = "../dbmigrator_macros" }
+dbmigrator_core = { version = "0.4.6-alpha", path = "../dbmigrator_core" }
+dbmigrator_macros = { version = "0.4.6-alpha", path = "../dbmigrator_macros" }
 
 [dev-dependencies]
 tempfile = "3"

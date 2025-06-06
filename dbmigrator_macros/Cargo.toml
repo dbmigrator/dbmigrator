@@ -1,6 +1,6 @@
 [package]
 name = "dbmigrator_macros"
-version = "0.4.3-alpha"
+version = "0.4.6-alpha"
 edition = "2021"
 
 [lib]
@@ -11,4 +11,4 @@ proc-macro2 = "1"
 syn = { version = "2", default-features = false }
 quote = "1.0.37"
 regex = "1.11.1"
-dbmigrator_core = { version = "0.4.3-alpha", path = "../dbmigrator_core" }
+dbmigrator_core = { version = "0.4.6-alpha", path = "../dbmigrator_core" }
