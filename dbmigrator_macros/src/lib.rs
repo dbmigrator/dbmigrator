@@ -74,11 +74,11 @@ impl<'a> ToTokens for MacroRecipeMeta<'a> {
                 new_name,
                 new_checksum,
             } => {
-                quote!(dbmigrator::__core::recipe::RecipeMeta::Revert {
+                quote!(dbmigrator::__core::recipe::RecipeMeta::Fixup {
                     old_checksum: ::std::borrow::Cow::Borrowed(#old_checksum),
                     maximum_version: ::std::borrow::Cow::Borrowed(#maximum_version),
-                    new_version: ::std::borrow::Cow::Borroed(#new_version),
-                    new_name: ::std::borrow::Cow::Borowed(#new_name),
+                    new_version: ::std::borrow::Cow::Borrowed(#new_version),
+                    new_name: ::std::borrow::Cow::Borrowed(#new_name),
                     new_checksum: ::std::borrow::Cow::Borrowed(#new_checksum)
                 })
             }
