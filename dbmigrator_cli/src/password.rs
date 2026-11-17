@@ -33,22 +33,21 @@ pub async fn connect(db_url: &str, no_prompt: bool) -> Result<AsyncDriver, CliEr
         }
     }
 
-    match AsyncDriver::connect_config(&config).await {
+    let e = match AsyncDriver::connect_config(&config).await {
         Err(MigratorError::PgError(e))
             if !no_prompt
                 && needs_password(&e, is_empty(config.get_password()))
                 && Term::stderr().is_term() =>
         {
-            match prompt(user.as_deref()) {
-                Some(password) => {
-                    config.password(password);
-                    Ok(AsyncDriver::connect_config(&config).await?)
-                }
-                None => Err(MigratorError::PgError(e).into()),
-            }
+            e
         }
-        result => Ok(result?),
-    }
+        result => return Ok(result?),
+    };
+    let Some(password) = prompt(user.as_deref()) else {
+        return Err(MigratorError::PgError(e).into());
+    };
+    config.password(password);
+    Ok(AsyncDriver::connect_config(&config).await?)
 }
 
 fn is_empty(password: Option<&[u8]>) -> bool {
@@ -59,15 +58,10 @@ fn is_empty(password: Option<&[u8]>) -> bool {
 fn needs_password(e: &PgError, password_empty: bool) -> bool {
     // tokio-postgres keeps the error kind private, and since 0.7.15 its Display prints only
     // "invalid configuration"; the reason is in the source chain.
-    let mut source = std::error::Error::source(e);
-    while let Some(cause) = source {
-        if cause.to_string().contains("password missing") {
-            return true;
-        }
-        source = cause.source();
-    }
-    // `postgres://user:@host` sets an empty password, which `Config` cannot unset.
-    password_empty && e.code() == Some(&SqlState::INVALID_PASSWORD)
+    std::iter::successors(std::error::Error::source(e), |cause| cause.source())
+        .any(|cause| cause.to_string().contains("password missing"))
+        // `postgres://user:@host` sets an empty password, which `Config` cannot unset.
+        || password_empty && e.code() == Some(&SqlState::INVALID_PASSWORD)
 }
 
 /// Reads a password without echo; `None` on an empty answer or when the terminal cannot be read.
@@ -100,24 +94,22 @@ fn password_file(config: &PgConfig, user: &str) -> Option<Vec<u8>> {
     let content = read_password_file(&password_file_path()?)?;
     lookup(
         &content,
-        &host,
+        host,
         port.as_bytes(),
         dbname.as_bytes(),
         user.as_bytes(),
     )
 }
 
-fn lookup_host(host: &Host) -> Vec<u8> {
+fn lookup_host(host: &Host) -> &[u8] {
     match host {
-        Host::Tcp(host) => host.as_bytes().to_vec(),
+        Host::Tcp(host) => host.as_bytes(),
         #[cfg(unix)]
-        Host::Unix(path) => {
-            if DEFAULT_SOCKET_DIRS.iter().any(|dir| path == Path::new(dir)) {
-                b"localhost".to_vec()
-            } else {
-                path.as_os_str().as_encoded_bytes().to_vec()
-            }
+        Host::Unix(path) if DEFAULT_SOCKET_DIRS.iter().any(|dir| path == Path::new(dir)) => {
+            b"localhost"
         }
+        #[cfg(unix)]
+        Host::Unix(path) => path.as_os_str().as_encoded_bytes(),
     }
 }
 
@@ -125,15 +117,14 @@ fn password_file_path() -> Option<PathBuf> {
     if let Some(path) = std::env::var_os("PGPASSFILE").filter(|p| !p.is_empty()) {
         return Some(path.into());
     }
-    #[cfg(windows)]
-    let path = std::env::var_os("APPDATA")
-        .filter(|d| !d.is_empty())
-        .map(|d| Path::new(&d).join("postgresql").join("pgpass.conf"));
-    #[cfg(not(windows))]
-    let path = std::env::var_os("HOME")
-        .filter(|h| !h.is_empty())
-        .map(|h| Path::new(&h).join(".pgpass"));
-    path
+    let (dir_var, file) = if cfg!(windows) {
+        ("APPDATA", r"postgresql\pgpass.conf")
+    } else {
+        ("HOME", ".pgpass")
+    };
+    std::env::var_os(dir_var)
+        .filter(|dir| !dir.is_empty())
+        .map(|dir| Path::new(&dir).join(file))
 }
 
 /// Reads the password file, skipping it with libpq's warnings when it is not safe to use.
@@ -306,9 +297,9 @@ mod tests {
     fn socket_host_key() {
         let default = Host::Unix(PathBuf::from("/var/run/postgresql"));
         let custom = Host::Unix(PathBuf::from("/srv/pg"));
-        assert_eq!(lookup_host(&default), b"localhost".to_vec());
-        assert_eq!(lookup_host(&custom), b"/srv/pg".to_vec());
-        assert_eq!(lookup_host(&Host::Tcp("db".into())), b"db".to_vec());
+        assert_eq!(lookup_host(&default), &b"localhost"[..]);
+        assert_eq!(lookup_host(&custom), &b"/srv/pg"[..]);
+        assert_eq!(lookup_host(&Host::Tcp("db".into())), &b"db"[..]);
     }
 
     #[cfg(unix)]
