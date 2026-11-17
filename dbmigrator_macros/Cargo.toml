@@ -1,6 +1,6 @@
 [package]
 name = "dbmigrator_macros"
-version = "0.4.6"
+version = "0.4.7-alpha"
 edition = "2021"
 description = "Procedural macros for the dbmigrator crate"
 authors = ["Przemyslaw Sztoch <przemyslaw@sztoch.pl>"]
@@ -15,4 +15,4 @@ proc-macro2 = "1"
 syn = { version = "2", default-features = false, features = ["parsing", "proc-macro"] }
 quote = "1.0.37"
 regex = "1.11.1"
-dbmigrator_core = { version = "0.4.6", path = "../dbmigrator_core" }
+dbmigrator_core = { version = "0.4.7-alpha", path = "../dbmigrator_core" }
