@@ -16,6 +16,10 @@ pub struct Cli {
     #[arg(short = 'M', long, env="DBMIGRATOR_MIGRATIONS_PATH", default_value = "./migrations")]
     pub migrations_path: PathBuf,
 
+    /// Never prompt for a password
+    #[arg(short = 'w', long, env = "DBMIGRATOR_NO_PASSWORD", default_value = "false")]
+    pub no_password: bool,
+
     /// Allow creating changelog table if not exists.
     #[arg(long, default_value = "false")]
     pub auto_initialize: bool,

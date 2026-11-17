@@ -62,5 +62,9 @@ pub use recipe::RecipeScript;
 pub use recipe::SIMPLE_FILENAME_PATTERN;
 pub use recipe::{simple_compare, simple_kind_detector, version_compare};
 
+#[cfg(feature = "tokio-postgres")]
+#[doc(no_inline)]
+pub use tokio_postgres;
+
 #[doc(hidden)]
 pub use dbmigrator_core as __core;

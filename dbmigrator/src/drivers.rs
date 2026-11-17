@@ -14,7 +14,7 @@ use crate::migrator::MigratorError;
 #[cfg(feature = "tokio-postgres")]
 use ::tokio_postgres::tls::NoTlsStream;
 #[cfg(feature = "tokio-postgres")]
-use ::tokio_postgres::{connect as pg_connect, Client, Connection, NoTls, Socket};
+use ::tokio_postgres::{Client, Connection, NoTls, Socket};
 
 use async_trait::async_trait;
 
@@ -33,30 +33,33 @@ pub trait AsyncClient {
 }
 
 pub struct AsyncDriver {
-    db_url: String,
     client: Box<dyn AsyncClient>,
 }
 
 impl AsyncDriver {
     pub async fn connect(db_url: &str) -> Result<Self, MigratorError> {
-        let client: Box<dyn AsyncClient>;
         #[cfg(feature = "tokio-postgres")]
         {
-            let (pgclient, connection) = pg_connect(db_url, NoTls).await?;
-            tokio::spawn(async move {
-                if let Err(e) = connection.await {
-                    eprintln!("connection error: {}", crate::migrator::format_pg_error(&e));
-                }
-            });
-            client = Box::new(pgclient);
+            Self::connect_config(&db_url.parse::<::tokio_postgres::Config>()?).await
         }
         #[cfg(not(feature = "tokio-postgres"))]
         {
+            let _ = db_url;
             panic!("tried to migrate from config for a postgresql database, but feature postgres not enabled!");
         }
+    }
+
+    /// Connects with an already parsed PostgreSQL configuration.
+    #[cfg(feature = "tokio-postgres")]
+    pub async fn connect_config(config: &::tokio_postgres::Config) -> Result<Self, MigratorError> {
+        let (pgclient, connection) = config.connect(NoTls).await?;
+        tokio::spawn(async move {
+            if let Err(e) = connection.await {
+                eprintln!("connection error: {}", crate::migrator::format_pg_error(&e));
+            }
+        });
         Ok(Self {
-            db_url: db_url.to_string(),
-            client,
+            client: Box::new(pgclient),
         })
     }
 

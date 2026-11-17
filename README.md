@@ -230,8 +230,13 @@ export DBMIGRATOR_MIGRATIONS_PATH=$(expand_path my-db/migrations)
 export DBMIGRATOR_DDL_PATH=$(expand_path my-db/ddl)
 ```
 
-You can store DB password in `.pgpass` [password file](https://www.postgresql.org/docs/current/libpq-pgpass.html) 
-in your home directory. 
+### Database password
+
+When the database URL has no password, dbmigrator takes it, like libpq, from `PGPASSWORD`, then from the
+[password file](https://www.postgresql.org/docs/current/libpq-pgpass.html) (`PGPASSFILE` or `~/.pgpass`).
+If the server still asks for one and stderr is a terminal, it prompts for it; `-w` (`--no-password`,
+`DBMIGRATOR_NO_PASSWORD`) turns the prompt off. No other `PG*` variables are read, and a leftover
+`PGPASSWORD` or matching `.pgpass` entry is used silently.
 
 
 ## License
