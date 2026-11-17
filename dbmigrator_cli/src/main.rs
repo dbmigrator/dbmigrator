@@ -44,6 +44,8 @@ fn inner_main() -> Result<(), CliError> {
         Some(Command::Status(_)) => match migrator_command(&cli) {
             Ok(_) => Ok(()),
             Err(e) => {
+                // Details go to stderr; stdout keeps only the status token for scripts.
+                eprintln!("{e}");
                 println!(
                     "{}",
                     match e {
@@ -332,7 +334,6 @@ async fn migrate(
     let len = migrator.plans().len();
 
     let green_bold = Style::new().green().bold();
-    let red_bold = Style::new().red().bold();
     if 0 < len {
         let pb = ProgressBar::new(len as u64);
         pb.set_style(
@@ -354,24 +355,16 @@ async fn migrate(
         for plan in migrator.plans() {
             pb.set_message(format!("Applying {}...", plan.script(),));
             result = migrator.apply_plan(driver.get_async_client(), plan).await;
-
-            let err_text;
-            let line = format!(
-                "{:>12} {}",
-                match &result {
-                    Ok(_) => green_bold.apply_to("Applied"),
-                    Err(e) => {
-                        err_text = format!("Failed - {}", e.to_string());
-                        red_bold.apply_to(err_text.as_str())
-                    }
-                },
-                plan.script(),
-            );
-            pb.println(line);
-
+            // The error names the script and is printed once by `main`: `pb.println` is a no-op
+            // when stderr is not a terminal.
             if result.is_err() {
                 break;
             }
+            pb.println(format!(
+                "{:>12} {}",
+                green_bold.apply_to("Applied"),
+                plan.script()
+            ));
             pb.inc(1);
         }
         pb.finish_and_clear();

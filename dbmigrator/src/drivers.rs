@@ -45,7 +45,7 @@ impl AsyncDriver {
             let (pgclient, connection) = pg_connect(db_url, NoTls).await?;
             tokio::spawn(async move {
                 if let Err(e) = connection.await {
-                    eprintln!("connection error: {}", e);
+                    eprintln!("connection error: {}", crate::migrator::format_pg_error(&e));
                 }
             });
             client = Box::new(pgclient);
