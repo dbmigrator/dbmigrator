@@ -54,6 +54,8 @@ The workspace publishes four crates to crates.io, always with the same version:
    (`cargo yank --version X.Y.Z <crate>`); fixes go out as a new version.
 6. Check the release: the crates.io pages of all four crates show the new version, docs.rs has
    built `dbmigrator`, and `cargo install dbmigrator_cli --version X.Y.Z` works.
+7. Open the next development version: set all four crates (and their internal dependencies) to
+   the next pre-release, e.g. `0.4.7-alpha`, and commit it as `Bump version 0.4.7-alpha`.
 
 ## Known issues
 
