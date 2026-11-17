@@ -2,6 +2,7 @@
 
 mod cli;
 mod ddl;
+mod password;
 
 use crate::cli::{CliError, Command};
 use crate::ddl::PgDdlConfig;
@@ -427,7 +428,7 @@ fn migrator_command(cli: &Cli) -> Result<(), CliError> {
 
     let runtime = tokio::runtime::Runtime::new()?;
     runtime.block_on(async move {
-        let mut driver = AsyncDriver::connect(cli.db_url.clone().unwrap().as_str()).await?;
+        let mut driver = password::connect(cli.db_url.clone().unwrap().as_str(), cli.no_password).await?;
         match cli.command {
             Some(Command::ShowConfig) => {
                 show_config(&migrator);
