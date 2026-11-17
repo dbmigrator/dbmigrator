@@ -41,8 +41,51 @@ pub enum MigratorError {
     },
 
     #[cfg(feature = "tokio-postgres")]
-    #[error(transparent)]
-    PgError(PgError),
+    #[error("{}", format_pg_error(.0))]
+    PgError(#[source] PgError),
+
+    /// A database error while applying a migration script; `position` is the 1-based line and
+    /// column in the script, when the server reports one.
+    #[cfg(feature = "tokio-postgres")]
+    #[error("migration `{script}` failed{}: {}", format_position(.position), format_pg_error(.source))]
+    ScriptFailed {
+        script: RecipeScript,
+        position: Option<(usize, usize)>,
+        source: PgError,
+    },
+}
+
+/// Formats a PostgreSQL error with the server's message, SQLSTATE, detail, hint and context,
+/// which the error's own `Display` leaves out.
+#[cfg(feature = "tokio-postgres")]
+pub(crate) fn format_pg_error(e: &PgError) -> String {
+    match e.as_db_error() {
+        Some(db) => {
+            let mut s = format!("{} {}: {}", db.severity(), db.code().code(), db.message());
+            if let Some(detail) = db.detail() {
+                s.push_str(&format!("\nDETAIL: {detail}"));
+            }
+            if let Some(hint) = db.hint() {
+                s.push_str(&format!("\nHINT: {hint}"));
+            }
+            if let Some(context) = db.where_() {
+                s.push_str(&format!("\nCONTEXT: {context}"));
+            }
+            s
+        }
+        None => match std::error::Error::source(e) {
+            Some(source) => format!("{e}: {source}"),
+            None => e.to_string(),
+        },
+    }
+}
+
+#[cfg(feature = "tokio-postgres")]
+fn format_position(position: &Option<(usize, usize)>) -> String {
+    match position {
+        Some((line, column)) => format!(" at line {line}, column {column}"),
+        None => String::new(),
+    }
 }
 
 impl From<RecipeError> for MigratorError {

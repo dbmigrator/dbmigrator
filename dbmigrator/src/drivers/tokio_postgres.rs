@@ -4,7 +4,7 @@ use crate::migrator::MigrationPlan;
 use crate::migrator::MigratorError;
 use async_trait::async_trait;
 use time::OffsetDateTime;
-use tokio_postgres::error::SqlState;
+use tokio_postgres::error::{ErrorPosition, SqlState};
 use tokio_postgres::Client;
 
 // TODO: Remove cast and fix error in fn log_count.
@@ -95,37 +95,78 @@ impl AsyncClient for Client {
         log_table_name: &str,
         plan: &MigrationPlan,
     ) -> Result<(), MigratorError> {
-        let transaction = self.transaction().await?;
-        let rows = transaction.query("SELECT clock_timestamp();", &[]).await?;
-        let start_ts: Option<OffsetDateTime> = match rows.iter().next() {
-            Some(row) => row.get(0),
-            None => None,
+        apply_plan_in_transaction(self, log_table_name, plan)
+            .await
+            .map_err(|e| match e {
+                MigratorError::PgError(source) => MigratorError::ScriptFailed {
+                    script: plan.script().clone(),
+                    position: None,
+                    source,
+                },
+                e => e,
+            })
+    }
+}
+
+async fn apply_plan_in_transaction(
+    client: &mut Client,
+    log_table_name: &str,
+    plan: &MigrationPlan,
+) -> Result<(), MigratorError> {
+    let transaction = client.transaction().await?;
+    let rows = transaction
+        .query(
+            "SELECT clock_timestamp(), current_setting('server_encoding');",
+            &[],
+        )
+        .await?;
+    let (start_ts, server_encoding): (Option<OffsetDateTime>, Option<String>) =
+        match rows.iter().next() {
+            Some(row) => (row.get(0), row.get(1)),
+            None => (None, None),
         };
-        transaction.batch_execute(plan.sql()).await?;
-        if let Some(log_to_revert) = plan.log_id_to_revert() {
-            transaction
-                .execute(
-                    &format!(
-                        "UPDATE {} SET revert_ts = $2 WHERE log_id = $1;",
-                        log_table_name
-                    ),
-                    &[&log_to_revert, &start_ts],
-                )
-                .await?;
-        }
-        #[cfg(debug_assertions)]
-        {
-            transaction
-                .batch_execute("SELECT pg_sleep(random()*2);")
-                .await?;
-        }
-        let rows = transaction.query("SELECT clock_timestamp();", &[]).await?;
-        let finish_ts: Option<OffsetDateTime> = match rows.iter().next() {
-            Some(row) => row.get(0),
-            None => None,
-        };
-        if let Some(log) = plan.revert_log() {
-            transaction.execute(
+    transaction
+        .batch_execute(plan.sql())
+        .await
+        .map_err(|source| {
+            let position = match source.as_db_error().and_then(|db| db.position()) {
+                Some(ErrorPosition::Original(pos)) => Some(line_col(
+                    plan.sql(),
+                    *pos,
+                    server_encoding.as_deref() == Some("SQL_ASCII"),
+                )),
+                _ => None,
+            };
+            MigratorError::ScriptFailed {
+                script: plan.script().clone(),
+                position,
+                source,
+            }
+        })?;
+    if let Some(log_to_revert) = plan.log_id_to_revert() {
+        transaction
+            .execute(
+                &format!(
+                    "UPDATE {} SET revert_ts = $2 WHERE log_id = $1;",
+                    log_table_name
+                ),
+                &[&log_to_revert, &start_ts],
+            )
+            .await?;
+    }
+    #[cfg(debug_assertions)]
+    {
+        transaction
+            .batch_execute("SELECT pg_sleep(random()*2);")
+            .await?;
+    }
+    let rows = transaction.query("SELECT clock_timestamp();", &[]).await?;
+    let finish_ts: Option<OffsetDateTime> = match rows.iter().next() {
+        Some(row) => row.get(0),
+        None => None,
+    };
+    if let Some(log) = plan.revert_log() {
+        transaction.execute(
                 &format!(
                     "INSERT INTO {} (log_id, version, name, kind, checksum, apply_by, start_ts, finish_ts) VALUES ($1, $2, $3, $4, $5, $6, $7, $8);",
                     log_table_name
@@ -141,9 +182,9 @@ impl AsyncClient for Client {
                     &finish_ts,
                 ],
             ).await?;
-        }
-        if let Some(log) = plan.apply_log() {
-            transaction.execute(
+    }
+    if let Some(log) = plan.apply_log() {
+        transaction.execute(
                 &format!(
                     "INSERT INTO {} (log_id, version, name, kind, checksum, apply_by, start_ts, finish_ts) VALUES ($1, $2, $3, $4, $5, $6, $7, $8);",
                     log_table_name
@@ -159,8 +200,67 @@ impl AsyncClient for Client {
                     &finish_ts,
                 ],
             ).await?;
+    }
+    transaction.commit().await?;
+    Ok(())
+}
+
+/// Converts a 1-based error position in `sql`, as reported by PostgreSQL, to a 1-based line and
+/// character column. The server counts characters, except in `SQL_ASCII` databases, where it
+/// counts bytes.
+fn line_col(sql: &str, pos: u32, pos_in_bytes: bool) -> (usize, usize) {
+    let offset = (pos as usize).saturating_sub(1);
+    let chars = if pos_in_bytes {
+        sql.char_indices().take_while(|(i, _)| *i < offset).count()
+    } else {
+        offset
+    };
+    let mut line = 1;
+    let mut column = 1;
+    for c in sql.chars().take(chars) {
+        if c == '\n' {
+            line += 1;
+            column = 1;
+        } else {
+            column += 1;
         }
-        transaction.commit().await?;
-        Ok(())
+    }
+    (line, column)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::line_col;
+
+    #[test]
+    fn line_col_first_line() {
+        assert_eq!(line_col("SELECT foo;", 1, false), (1, 1));
+        assert_eq!(line_col("SELECT foo;", 8, false), (1, 8));
+    }
+
+    #[test]
+    fn line_col_after_newlines() {
+        assert_eq!(line_col("SELECT 1;\nSELECT foo;", 18, false), (2, 8));
+        assert_eq!(line_col("SELECT 1;\r\nSELECT foo;", 19, false), (2, 8));
+    }
+
+    #[test]
+    fn line_col_character_positions() {
+        assert_eq!(line_col("-- żółć\nSELECT foo;", 16, false), (2, 8));
+    }
+
+    #[test]
+    fn line_col_byte_positions() {
+        // "żółć" is 4 characters, 8 bytes.
+        assert_eq!(line_col("-- żółć\nSELECT foo;", 20, true), (2, 8));
+        assert_eq!(line_col("-- żółć\nSELECT foo;", 4, true), (1, 4));
+        // An offset inside a multi-byte character points at the next character.
+        assert_eq!(line_col("żółć", 2, true), (1, 2));
+    }
+
+    #[test]
+    fn line_col_past_end() {
+        assert_eq!(line_col("SELECT", 100, false), (1, 7));
+        assert_eq!(line_col("SELECT", 100, true), (1, 7));
     }
 }
