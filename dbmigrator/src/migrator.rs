@@ -9,6 +9,7 @@ use tokio_postgres::error::Error as PgError;
 
 /// An Error occurred during a migration cycle
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum MigratorError {
     #[error(transparent)]
     RecipeError(RecipeError),
