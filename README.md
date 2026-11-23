@@ -193,6 +193,8 @@ The standard set creates the following structure:
 DBMigrator internally uses the `pg_dump` tool from PostgreSQL.
 This ensures that the DDL scripts are consistent with the current state and version of the database
 and include all newly added functionalities to PostgreSQL.
+GRANT statements made by the object owner are sorted, so their order does not depend on the OIDs
+of the roles in a cluster. Grants made by other roles keep pg_dump's order.
 
 #### Custom DDL ruleset
 

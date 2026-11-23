@@ -2,6 +2,7 @@ use handlebars::Handlebars;
 use pgarchive::{Archive, TocEntry};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::sync::LazyLock;
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct PgDdlRule {
@@ -159,7 +160,9 @@ impl<'a> PgDdlConfig<'a> {
                 e.push_str("-- ");
                 e.push_str(entry.drop_stmt.as_str());
             }
-            if !entry.defn.is_empty() {
+            if entry.desc == "ACL" || entry.desc == "DEFAULT ACL" {
+                e.push_str(&sort_acl_grants(&entry.defn));
+            } else {
                 e.push_str(entry.defn.as_str());
             }
             if !entry.copy_stmt.is_empty() {
@@ -169,5 +172,112 @@ impl<'a> PgDdlConfig<'a> {
             e.push_str("\n");
         }
         sql_files
+    }
+}
+
+static GRANT_REGEX: LazyLock<regex::Regex> = LazyLock::new(|| {
+    let ident = r#"(?:[^\s"]+|"(?:[^"]|"")*")"#;
+    regex::Regex::new(&format!(
+        r"^(?:ALTER DEFAULT PRIVILEGES (?:FOR ROLE {ident} )?(?:IN SCHEMA {ident} )?)?GRANT "
+    ))
+    .unwrap()
+});
+
+/// Sorts each run of consecutive GRANT statements in the definition of an ACL entry.
+///
+/// PostgreSQL orders ACL arrays by role OID, so pg_dump's statement order differs between
+/// clusters. Statements other than GRANT (REVOKE, SET/RESET SESSION AUTHORIZATION) keep their
+/// place and split the runs. Definitions with multi-line statements are left as they are.
+fn sort_acl_grants(defn: &str) -> String {
+    let body = defn.strip_suffix('\n').unwrap_or(defn);
+    let mut lines: Vec<&str> = body.split('\n').collect();
+    // An odd number of quotes means the line ends inside a quoted identifier.
+    if lines
+        .iter()
+        .any(|line| !line.ends_with(';') || line.matches('"').count() % 2 != 0)
+    {
+        return defn.to_string();
+    }
+    for run in lines.split_mut(|line| !GRANT_REGEX.is_match(line)) {
+        run.sort_unstable();
+    }
+    let mut sorted = lines.join("\n");
+    sorted.push_str(&defn[body.len()..]);
+    sorted
+}
+
+#[cfg(test)]
+mod tests {
+    use super::sort_acl_grants;
+
+    #[test]
+    fn sorts_grants_after_revoke() {
+        let defn = "REVOKE ALL ON FUNCTION s.f() FROM PUBLIC;\n\
+                    GRANT ALL ON FUNCTION s.f() TO rw;\n\
+                    GRANT ALL ON FUNCTION s.f() TO auth;\n\
+                    GRANT ALL ON FUNCTION s.f() TO r;\n";
+        assert_eq!(
+            sort_acl_grants(defn),
+            "REVOKE ALL ON FUNCTION s.f() FROM PUBLIC;\n\
+             GRANT ALL ON FUNCTION s.f() TO auth;\n\
+             GRANT ALL ON FUNCTION s.f() TO r;\n\
+             GRANT ALL ON FUNCTION s.f() TO rw;\n"
+        );
+    }
+
+    #[test]
+    fn sorts_default_privileges() {
+        let defn = "ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA s GRANT SELECT ON TABLES TO rw;\n\
+                    ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA s GRANT SELECT ON TABLES TO r;\n";
+        assert_eq!(
+            sort_acl_grants(defn),
+            "ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA s GRANT SELECT ON TABLES TO r;\n\
+             ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA s GRANT SELECT ON TABLES TO rw;\n"
+        );
+    }
+
+    #[test]
+    fn keeps_revoke_in_place() {
+        let defn = "ALTER DEFAULT PRIVILEGES FOR ROLE \"Some Role\" REVOKE GRANT OPTION FOR ALL ON TABLES FROM b;\n\
+                    ALTER DEFAULT PRIVILEGES FOR ROLE \"Some Role\" GRANT SELECT ON TABLES TO b;\n\
+                    ALTER DEFAULT PRIVILEGES FOR ROLE \"Some Role\" GRANT SELECT ON TABLES TO a;\n";
+        assert_eq!(
+            sort_acl_grants(defn),
+            "ALTER DEFAULT PRIVILEGES FOR ROLE \"Some Role\" REVOKE GRANT OPTION FOR ALL ON TABLES FROM b;\n\
+             ALTER DEFAULT PRIVILEGES FOR ROLE \"Some Role\" GRANT SELECT ON TABLES TO a;\n\
+             ALTER DEFAULT PRIVILEGES FOR ROLE \"Some Role\" GRANT SELECT ON TABLES TO b;\n"
+        );
+    }
+
+    #[test]
+    fn leaves_grants_by_other_grantors_unsorted() {
+        // pg_dump wraps each grant made by a role other than the owner in its own block.
+        let defn = "GRANT SELECT ON TABLE s.t TO b WITH GRANT OPTION;\n\
+                    GRANT SELECT ON TABLE s.t TO a;\n\
+                    SET SESSION AUTHORIZATION b;\n\
+                    GRANT SELECT ON TABLE s.t TO d;\n\
+                    RESET SESSION AUTHORIZATION;\n\
+                    SET SESSION AUTHORIZATION b;\n\
+                    GRANT SELECT ON TABLE s.t TO c;\n\
+                    RESET SESSION AUTHORIZATION;\n";
+        assert_eq!(
+            sort_acl_grants(defn),
+            "GRANT SELECT ON TABLE s.t TO a;\n\
+             GRANT SELECT ON TABLE s.t TO b WITH GRANT OPTION;\n\
+             SET SESSION AUTHORIZATION b;\n\
+             GRANT SELECT ON TABLE s.t TO d;\n\
+             RESET SESSION AUTHORIZATION;\n\
+             SET SESSION AUTHORIZATION b;\n\
+             GRANT SELECT ON TABLE s.t TO c;\n\
+             RESET SESSION AUTHORIZATION;\n"
+        );
+    }
+
+    #[test]
+    fn leaves_multi_line_statements_unchanged() {
+        let defn = "GRANT SELECT ON TABLE s.\"multi\nline\" TO b;\nGRANT SELECT ON TABLE s.t TO a;\n";
+        assert_eq!(sort_acl_grants(defn), defn);
+        let defn = "GRANT SELECT ON TABLE s.t TO z;\nGRANT SELECT ON TABLE s.t TO \"a;\nb\";\n";
+        assert_eq!(sort_acl_grants(defn), defn);
     }
 }
